@@ -1,0 +1,31 @@
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+</head>
+<body>
+	<script type="text/javascript">
+		// Load the Visualization API and the piechart package.
+		google.load("visualization", "1.1", {'packages':['timeline']});
+		google.setOnLoadCallback(drawChartDates);
+		function drawChartDates() {
+			var container = document.getElementById('chart_div_dates');
+			var chart_dates = new google.visualization.Timeline(container);
+			var dataDates = google.visualization.arrayToDataTable(tableau) ;
+			var options = {
+				width: 800,
+				height: 1200,
+				focusTarget: 'category',
+				tooltip: {isHtml: true},
+				timeline: { showRowLabels: false }
+			};
+			
+			chart_dates.draw(dataDates, options);
+			document.getElementById('png').outerHTML = '<b>Couverture chronologique des fonds de l\'entité documentaire</b> <br>Attention : les fonds sans dates extrêmes n\'apparaissent pas.';
+		}
+	</script>
+	<div id="png"></div>
+	<div id="chart_div_dates"></div>
+
+</body>
+</html>

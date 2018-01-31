@@ -1,0 +1,36 @@
+<html>
+<head>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<meta charset="UTF-8" />
+</head>
+<body>
+	<script type="text/javascript">
+		// Load the Visualization API and the piechart package.
+		//google.load('visualization', '1.0', {'packages':['corechart']});
+		//google.load("visualization", "1.1", {'packages':['bar']});
+		//google.load("visualization", "1.1", {'packages':['table']});
+		google.load("visualization", '1.1', {packages:['corechart', 'bar', 'table']});	
+		// Set a callback to run when the Google Visualization API is loaded.
+		google.setOnLoadCallback(drawChartTypeFonds);				
+		function drawChartTypeFonds() {
+			//var data = new google.visualization.DataTable();
+			//var data = google.visualization.arrayToDataTable([['Type de fonds', 'Nombre de fonds'],['Archives de chercheur',1]]) ;
+			var data = google.visualization.arrayToDataTable(tableau) ;
+				
+			var options = {
+				width: 500,
+				height: 450,
+				title: 'Répartition des fonds par type de fonds',
+				legend: {position: 'top'}
+			};
+			var chart_type_fonds = new google.visualization.ColumnChart(document.getElementById('chart_type_fonds'));
+			chart_type_fonds.draw(data, options);	
+
+			var table = new google.visualization.Table(document.getElementById('table_div'));
+			table.draw(data, {showRowNumber: false});			
+		}		
+	</script>
+	<div border=1 id="chart_type_fonds"></div></center>
+	<center><div id="table_div"></div></center> 	
+</body>
+</html>

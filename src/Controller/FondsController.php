@@ -130,8 +130,8 @@ class FondsController extends AppController
 		// Définition d'un tri par défaut si le paginateur dans l'URL n'a pas été sollicité
 		// Ne pas le placer dans la variable $paginate pour éviter de l'imposer systématiquement
 		if ( empty($sort) ) {
-			$query->order(["TypeFonds.num_seq" => "ASC", "Fonds.nom" => "ASC"]);
-			//$query->order(["Fonds.nom" => "ASC"]);
+			//$query->order(["TypeFonds.num_seq" => "ASC", "Fonds.nom" => "ASC"]);
+			$query->order(["Fonds.nom" => "ASC"]);
 		}
 		
 		$this->set('fonds', $this->paginate($query));	
@@ -1349,7 +1349,8 @@ class FondsController extends AppController
 					])	
 					->where([
 						['ind_suppr <> ' => 1],
-						['(annee_deb is not null or annee_fin is not null)']
+						['(annee_deb is not null or annee_fin is not null)'],
+						['(annee_deb <> 0 and annee_fin <> 0)']
 					]);
 		}
 		

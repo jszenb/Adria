@@ -114,9 +114,12 @@
         <thead>
             <tr>
                 <th width=40%><?= $this->Paginator->sort('nom','Nom', ['direction' => 'desc']) ?></th>
-                <th width=10%><?=$this->Paginator->sort('Etablissements.code','Etablissement') ?></th>
-                <th width=10%><?= $this->Paginator->sort('EntiteDocs.code', 'Entité documentaire') ?></th>
-				<th width=13%><?= $this->Paginator->sort('TypeFonds.type', 'Type de fonds') ?></th>
+                <!-- <th width=10%><?=$this->Paginator->sort('Etablissements.code','Etablissement') ?></th> -->
+                <th width=10%>Etablissement</th>
+                <!-- <th width=10%><?= $this->Paginator->sort('EntiteDocs.code', 'Entité documentaire') ?></th>-->
+                <th width=10%>Entité documentaire</th>
+		<!-- <th width=13%><?= $this->Paginator->sort('TypeFonds.type', 'Type de fonds') ?></th>-->
+		<th width=13%>Type de fonds</th>
                 <th width=6%><?= $this->Paginator->sort('nb_ml', 'Vol. ml') ?></th>
                 <th width=6%><?= $this->Paginator->sort('nb_go', 'Vol. Go') ?></th>				
                 <th class="actions"><?= __('Actions') ?></th>

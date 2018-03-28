@@ -133,7 +133,7 @@
 
 					if ( ($typeUserEnSession == PROFIL_CC) || ( (in_array($typeUserEnSession, [PROFIL_CA, PROFIL_CO])) && (!$fond->ind_suppr) ) ): ?>
 					<tr>
-						<td><?= $fond->ind_maj ? '&nbsp;&#x2714;' : '' ?><?= h($fond->nom) ?>
+						<td><?= h($fond->nom) ?><?= $fond->ind_maj ? '&nbsp;&#x2714;' : '' ?>
 						<?php if ($fond->ind_suppr) {
 								echo('<b>(supprimé)</b>');
 							} 

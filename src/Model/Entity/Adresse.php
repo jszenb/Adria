@@ -9,7 +9,7 @@ use Cake\ORM\Entity;
  * @property int $id
  * @property int $num_seq
  * @property float $volume
- * @property int $magasin
+ * @property string $magasin
  * @property int $epi_deb
  * @property int $epi_fin
  * @property int $travee_deb

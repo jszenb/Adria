@@ -278,6 +278,12 @@ class FondsTable extends Table
             ->requirePresence('type_instr_rech_id');	
 
         $validator
+            ->requirePresence('stockage');	
+
+        $validator
+            ->requirePresence('communication');	
+
+        $validator
             ->allowEmpty('url_instr_rech');		
 
         return $validator;

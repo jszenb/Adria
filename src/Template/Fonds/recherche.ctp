@@ -29,17 +29,21 @@
 						19 => 'Conditionnement',
 						20 => 'Etat de traitement',
 						16 => 'Instrument de recherche',
-						26 => 'URL de l\'instrument de recherche',						
+						26 => 'URL de l\'instrument de recherche',
 						21 => 'Numérisation',
 						17 => 'Discipline',
-						18 => 'Aire culturelle',						
+						18 => 'Aire culturelle',
 						2  => 'Code entité documentaire', 
 						3  => 'Code établissement', 
 						4  => 'Nom du lieu de conservation',
 						24 => 'Cote',
 						25 => 'Dates extrêmes',
 						27 => 'Fiche de fonds modifiée',
-						28 => 'Fiche de fonds à jour'
+						28 => 'Fiche de fonds à jour',
+                                                29 => 'Prise en charge du fonds',
+                                                30 => 'Prestation',
+                                                31 => 'Lieu de stockage cible',
+                                                32 => 'Communicabilité du fonds'
 					];
 		$listeOperande = [
 						0 => '',
@@ -210,9 +214,9 @@ function prepareSubmit() {
         <thead>
             <tr>		
                 <th width=40%><?= $this->Paginator->sort('nom', 'Nom', ['url' => $url, 'direction' => 'desc']) ?></th>
-				<th width=10%><?= $this->Paginator->sort('Etablissements.code','Etablissement', ['url' => $url]) ?></th>
+		<th width=10%><?= $this->Paginator->sort('Etablissements.code','Etablissement', ['url' => $url]) ?></th>
                 <th width=10%><?= $this->Paginator->sort('EntiteDocs.code', 'Entité documentaire', ['url' => $url]) ?></th>
-				<th width=13%><?= $this->Paginator->sort('TypeFonds.type', 'Type de fonds', ['url' => $url]) ?></th>
+		<th width=13%><?= $this->Paginator->sort('TypeFonds.type', 'Type de fonds', ['url' => $url]) ?></th>
                 <th width=6%><?= $this->Paginator->sort('nb_ml', 'Vol. ml', ['url' => $url]) ?></th>
                 <th width=6%><?= $this->Paginator->sort('nb_go', 'Vol. Go', ['url' => $url]) ?></th>				
                 <th class="actions"><?= __('Actions') ?></th>
@@ -223,7 +227,11 @@ function prepareSubmit() {
 			foreach ($fonds as $fond): 
 					if ( ($typeUserEnSession == PROFIL_CC) || ( (in_array($typeUserEnSession, [PROFIL_CA, PROFIL_CO])) && (!$fond->ind_suppr) ) ): ?>
 					<tr>
-						<td><?= h($fond->nom) ?>
+                                               <?php $dateAffichee = '' ;
+                                                     empty($fond->dt_der_modif) ? $dateAffichee = $fond->dt_creation->nice('Europe/Paris', 'fr-FR') : $dateAffichee = $fond->dt_der_modif->nice('Europe/Paris', 'fr-FR') ;
+                                               ?>
+                                                <td><?= h($fond->nom) ?><?= $fond->ind_maj ? '&nbsp;&#x2714; (' .  $dateAffichee . ')' : '' ?>
+
 						<?php if ($fond->ind_suppr) {echo('<b>(supprimé)</b>');} ?>
 						</td>
 						<td><?= $fond->entite_doc->has('etablissement') ? $this->Html->link($fond->entite_doc->etablissement->code, ['controller' => 'Etablissements', 'action' => 'view', $fond->entite_doc->etablissement->id]) : '' ?></td>
@@ -236,9 +244,9 @@ function prepareSubmit() {
 							<?php if ( ($typeUserEnSession == PROFIL_CC) || ( ($typeUserEnSession == PROFIL_CA) && ($idEntiteDocEnSession == $fond->entite_doc->id) ) ){ ?>
 								<?= $this->Html->link(__('Modifier'), ['action' => 'edit', $fond->id]) ?>
 							<?php } ?>
-							<?php if ($typeUserEnSession == PROFIL_CC) { ?>
+							<?php /* if ($typeUserEnSession == PROFIL_CC) { ?>
 								<?= $this->Form->postLink(__('Supprimer'), ['action' => 'delete', $fond->id], ['confirm' => __('Voulez-vous vraiment supprimer le fonds {0} ?', $fond->nom)]) ?>
-							<?php } ?>
+							<?php }*/ ?>
 						</td>
 					</tr>
 					<?php 
@@ -261,14 +269,14 @@ function prepareSubmit() {
 	?>
 	<div class="paginator">
         <ul class="pagination">
-			<?= $this->Paginator->first('Début',['escape' => false] ) ?>
-            <?= $this->Paginator->hasPrev() ? $this->Paginator->prev('< ' . __('précédent'), ['url' => $url] ) : '' ?>
-            <?= $this->Paginator->numbers(['url' => $url]) ?>
-            <?= $this->Paginator->hasNext () ?$this->Paginator->next(__('suivant') . ' >', ['url' => $url]) : '' ?>
-			<?= $this->Paginator->last('Fin', ['escape' => false] ) ?>
+		<?= $this->Paginator->first('Début',['escape' => false] ) ?>
+		<?= $this->Paginator->hasPrev() ? $this->Paginator->prev('< ' . __('précédent'), ['url' => $url] ) : '' ?>
+		<?= $this->Paginator->numbers(['url' => $url]) ?>
+		<?= $this->Paginator->hasNext () ?$this->Paginator->next(__('suivant') . ' >', ['url' => $url]) : '' ?>
+		<?= $this->Paginator->last('Fin', ['escape' => false] ) ?>
         </ul>
         <p><?= $this->Paginator->counter() ?></p>
-    </div>
+	</div>
 	<?php } 
 	else {
 		if (!empty($rappelCritere)) { 
@@ -284,7 +292,7 @@ $(function() {
 
 	// On commence par repositionner le critère de recherche : c'est une liste fixe. On ne repositionne pas
 	// encore les valeurs d'opérande et de valeur avant que la liste des valeurs soit reconstruite par le code qui suit.
-    document.forms["f_search"].critere.value = '<?php echo ($rappelCritere); ?>';
+	document.forms["f_search"].critere.value = '<?php echo ($rappelCritere); ?>';
 	document.forms["f_search"].perimetre.value = '<?php echo ($rappelPerimetre); ?>' ;
 	document.forms["f_search"].limite.value = '<?php echo ($rappelLimite); ?>' ;	
 	
@@ -296,53 +304,53 @@ $(function() {
 	
 	// Etablissement des correspondances des critères de recherche
     var selectValues = {
-		"0": {
-			// vide
-		},
+        "0": {
+		// vide
+        },
 		// Nom du fonds
-        "1": {
+	"1": {
             "1": "=",
-			"2": "Commence par"
+            "2": "Commence par"
         },
 		// Code Entité documentaire
         "2": {
             "1": "=",
-			"2": "Commence par"
+            "2": "Commence par"
         },
 		// Code Etablissement
         "3": {
             "1": "=",
-			"2": "Commence par"
+            "2": "Commence par"
         },
 		// Nom du lieu de conservation
         "4": {
             "1": "=",
-			"2": "Commence par"
+            "2": "Commence par"
         },	
 		// Producteur
         "5": {
             "1": "=",
-			"2": "Commence par"
+            "2": "Commence par"
         },
 		// Statut juridique
         "6": {
             "1": "=",
-			"3": "Différent de"
+            "3": "Différent de"
         },	
 		// Mode d'entrée
         "7": {
             "1": "=",
-			"3": "Différent de"
+            "3": "Différent de"
         },	
 		// Documents afférents
         "8": {
             "1": "=",
-			"3": "Différent de"
+           "3": "Différent de"
         },			
 		// Type de fonds
         "9": {
             "1": "=",
-			"3": "Différent de"
+            "3": "Différent de"
         },
 		// Couplé à une collection d'imprimés
         "10": {
@@ -351,12 +359,12 @@ $(function() {
 		// Type de document
         "11": {
             "1": "=",
-			"3": "Différent de"
+            "3": "Différent de"
         },
 		// Type de support
         "12": {
             "1": "=",
-			"3": "Différent de"
+            "3": "Différent de"
         },		
 		// Support numérique
         "13": {
@@ -369,89 +377,104 @@ $(function() {
 		// Accroissement
         "15": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Type d'instrument de recherche
         "16": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Thématique
         "17": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Aires culturelles
         "18": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Type de conditionnement
         "19": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Type de traitement
         "20": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Type de numérisation
         "21": {
             "1": "=",
-			"3": "Différent de"			
+            "3": "Différent de"			
         },
 		// Volumétrie ml et Go
-		"22": {
-			//"1": "=",
-			//"3": "Différent de",
-			"4": "Supérieure ou égale",
-			"5": "Inférieure ou égale"
+        "22": {
+            "4": "Supérieure ou égale",
+            "5": "Inférieure ou égale"
 		},
-		"23": {
-			//"1": "=",
-			//"3": "Différent de",
-			"4": "Supérieure ou égale",
-			"5": "Inférieure ou égale"
+         "23": {
+            "4": "Supérieure ou égale",
+            "5": "Inférieure ou égale"
 		},
 		// Cote
-        "24": {
+         "24": {
             "1": "=",
-			"2": "Commence par"	,	
-			"3": "Différent de"
+            "2": "Commence par"	,	
+            "3": "Différent de"
 		},
 		// Dates
-        "25": {
-           "6": 'compris entre (année)'
+         "25": {
+            "6": 'compris entre (année)'
 		},
 		// URL de l'instrument de recherche
-        "26": {
+         "26": {
             "7": "renseigné"
 		},
 		// Modification ?
-        "27": {
-			"0": ""		
+         "27": {
+            "0": ""		
 		},
 		// Fiche de fonds à jour ?
-        "28": {
-			"1": "="		
-		}	
+         "28": {
+            "1": "="		
+		},
+		// Type de prise en charge
+ 	"29": {
+            "1": "=",
+            "3": "Différent de"
+		},
+		// Type de traitement envisagé
+ 	"30": {
+            "1": "=",
+            "3": "Différent de"
+		},
+		// Stockage cible
+         "31": {
+            "1": "=",
+            "3": "Différent de"
+		},
+		// Communicabilité ?
+         "32": {
+            "1": "=",
+            "3": "Différent de"
+		}
     };
 
     var $critere = $('select.critere');
     var $operande = $('select.operande');
-
 	// Adaptation de la liste des opérandes selon le critère :
     $critere.change(function() {
 		
 
-        $operande.empty().append(function() {
-            var output = '';
-            $.each(selectValues[$critere.val()], function(key, value) {		
-                output += '<option value="' + key +'">' + value + '</option>'	
-            });
-            return output;	
-        });
+		$operande.empty().append(function() {
+			var output = '';
+			$.each(selectValues[$critere.val()], function(key, value) {		
+				output += '<option value="' + key +'">' + value + '</option>'	
+			});
+			return output;	
+		});
 		
 		// Pas d'opérande pour le 27e critère (fiche de fonds modifiée) : on masque. Sinon on affiche. 
 		$critere.val() == '27' ? $operande.hide() : $operande.show() ;
@@ -559,6 +582,26 @@ $(function() {
 				break;		
 			case '27':	
 				var $clauseSelect = '<select name="valeur" class="valeur" id="valeur"><option value="0">oui</option><option value="1">oui, dans le dernier mois</option><option value="2">oui, dans le dernier trimestre</option><option value="3">non</option></select>';
+				$('#valeur').replaceWith($clauseSelect);	
+				break;					
+			// Remplissage de la liste des valeurs possibles pour type de prise en charges
+			case '29':
+				var $typePriseEnCharges = '<?php echo construireValeursCritere($typePriseEnCharges, null) ; ?>';
+				var $clauseSelect = '<select name="valeur" class="valeur" id="valeur">' + $typePriseEnCharges + '</select>';
+				$('#valeur').replaceWith($clauseSelect);
+				break;		
+			// Remplissage de la liste des valeurs possibles pour type de realisation de traitement envisagé
+			case '30':
+				var $typeRealisationTraitements = '<?php echo construireValeursCritere($typeRealisationTraitements, null) ; ?>';
+				var $clauseSelect = '<select name="valeur" class="valeur" id="valeur">' + $typeRealisationTraitements + '</select>';
+				$('#valeur').replaceWith($clauseSelect);
+				break;		
+			case '31':
+				var $clauseSelect = '<select name="valeur" class="valeur" id="valeur"><option value="0"><?php echo addslashes(LIB_STOCKAGE_CIBLE[0]) ?></option><option value="1"><?php echo addslashes(LIB_STOCKAGE_CIBLE[1]) ?></option><option value="2"><?php echo addslashes(LIB_STOCKAGE_CIBLE[2]) ?></option><option value="3"><?php echo addslashes(LIB_STOCKAGE_CIBLE[3]) ?></option></select>';
+				$('#valeur').replaceWith($clauseSelect);	
+				break;					
+			case '32':
+				var $clauseSelect = '<select name="valeur" class="valeur" id="valeur"><option value="0"><?php echo addslashes(LIB_COMMUNICATION[0]) ?></option><option value="1"><?php echo addslashes(LIB_COMMUNICATION[1]) ?></option><option value="2"><?php echo addslashes(LIB_COMMUNICATION[2]) ?></option></select>';
 				$('#valeur').replaceWith($clauseSelect);	
 				break;					
 			default:

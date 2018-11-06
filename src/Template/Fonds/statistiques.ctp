@@ -489,8 +489,9 @@
 			'18' => '18 Répartition des aires culturelles par discipline (d\'après la volumétrie ml)',
 			'19' => '19 Répartition des disciplines par aire culturelle (d\'après la volumétrie ml)',
 			'20' => '20 Répartition des aires culturelles par discipline (d\'après le nombre de fonds)',			
-			'21' => '21 Répartition des disciplines par aire culturelle (d\'après le nombre de fonds)'			
-			
+			'21' => '21 Répartition des disciplines par aire culturelle (d\'après le nombre de fonds)',
+			'23' => '22 Fonds traités par le marché de traitement (% établis d\'après le nombre de fonds et la volumétrie ml)',
+			'24' => '23 Prestation réalisée dans le cadre du marche de traitement (% établis d\'après le nombre de fonds et la volumétrie ml)'
 			];
 			?>
 			<table class="recherche">
@@ -551,6 +552,8 @@ function statChange() {
 		case '16':		
 		case '17':
 		case '22':		
+		case '23':		
+		case '24':		
 			$('#entitedoc option[value="all"]').prop('selected', true);
 			$('#entitedoc').show();
 			$('#entitedoc').css('border','2px solid');

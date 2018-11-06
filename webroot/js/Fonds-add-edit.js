@@ -32,6 +32,17 @@ $(document).ready(function(){
 	}	
 
 	// Initialisation de la gestion de l'implantation en magasin
+        if ($('#adresses-0-volume').val() == '' ) {     
+                $('#adresses-0-magasin').prop('disabled', true); 
+                $('#adresses-0-magasin').prop('required', false); 
+                $('#adresses-0-epi-deb').prop('disabled', true);   
+                $('#adresses-0-epi-fin').prop('disabled', true);    
+                $('#adresses-0-travee-deb').prop('disabled', true);  
+                $('#adresses-0-travee-fin').prop('disabled', true);   
+                $('#adresses-0-tablette-deb').prop('disabled', true);  
+                $('#adresses-0-tablette-fin').prop('disabled', true);   
+        }
+
 	if ($('#adresses-1-volume').val() == '' ) {	
 		$('#adresses-1-magasin').prop('disabled', true);	
 		$('#adresses-1-magasin').prop('required', false);			

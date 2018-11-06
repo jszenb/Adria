@@ -55,6 +55,8 @@ use Cake\ORM\Entity;
  * @property bool $ind_suppr
  * @property int $raison_suppression_id
  * @property int $ind_maj
+ * @property int $stockage
+ * @property int $communication
  * @property \App\Model\Entity\RaisonSuppression $raison_suppression
  * @property \App\Model\Entity\TypeDocAfferent[] $type_doc_afferents
  * @property \App\Model\Entity\AireCulturelle[] $aire_culturelles

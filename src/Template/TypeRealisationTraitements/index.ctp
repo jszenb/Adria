@@ -7,7 +7,7 @@
     </ul>
 </nav>
 <div class="typeRealisationTraitements index large-9 medium-8 columns content">
-    <h3><?= __('Type de réalisation de traitement') ?></h3>
+    <h3><?= __('Type de prestation') ?></h3>
     <table cellpadding="0" cellspacing="0">
         <thead>
             <tr>
@@ -26,7 +26,7 @@
                 <td class="actions">
                     <?= $this->Html->link(__('Consulter'), ['action' => 'view', $typeRealisationTraitement->id]) ?>
                     <?= $this->Html->link(__('Modifier'), ['action' => 'edit', $typeRealisationTraitement->id]) ?>
-                    <?= $this->Form->postLink(__('Supprimer'), ['action' => 'delete', $typeRealisationTraitement->id], ['confirm' => __('Voulez-vous vraiment effacer le type de réalisation de traitement {0} ?', $typeRealisationTraitement->type)]) ?>
+                    <?= $this->Form->postLink(__('Supprimer'), ['action' => 'delete', $typeRealisationTraitement->id], ['confirm' => __('Voulez-vous vraiment effacer le type de prestation {0} ?', $typeRealisationTraitement->type)]) ?>
                 </td>
             </tr>
             <?php endforeach; ?>

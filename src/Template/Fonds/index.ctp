@@ -62,12 +62,11 @@
 					<?= $this->Form->create(null, ['type' => 'get', 'url' => '/fonds/index', 'name' => 'f_limite']); ?>
 					<?= $this->Form->hidden('type',['value' => $typeAffichage]); ?>
 					<?= $this->Form->select('limite', 
-											['' => 'Résultats par page', 20 => '20', 30 => '30', 40 => '40', 50 => '50', 80 => '80', 100 => '100'], 
-											['class' => 'limite', 'label' => 'Nombre de résultats par page', 'onChange' => 'submit();']
-											) ?>
+								['' => 'Résultats par page', 20 => '20', 30 => '30', 40 => '40', 50 => '50', 80 => '80', 100 => '100'], 
+								['class' => 'limite', 'label' => 'Nombre de résultats par page', 'onChange' => 'submit();']
+								) ?>
                                             
-                    <!-- La div suivant est déclarée ici pour inclure la raison de suppression dans le formulaire
-                         mais son affichage se fait en popup (gérée en Jquery) -->
+                    <!-- La div suivant est déclarée ici pour inclure la raison de suppression dans le formulaire mais son affichage se fait en popup (gérée en Jquery) -->
                     <div id="popup1" class="popup_block" align="left">
                         <p>Voulez-vous vraiment supprimer ce fonds ? <br>
                         <p>Pour confirmer, choisissez une raison de suppression puis cliquez sur "supprimer", sinon cliquez sur "annuler".<br><br>
@@ -133,7 +132,10 @@
 
 					if ( ($typeUserEnSession == PROFIL_CC) || ( (in_array($typeUserEnSession, [PROFIL_CA, PROFIL_CO])) && (!$fond->ind_suppr) ) ): ?>
 					<tr>
-						<td><?= h($fond->nom) ?><?= $fond->ind_maj ? '&nbsp;&#x2714;' : '' ?>
+                                               <?php $dateAffichee = '' ;
+                                                     empty($fond->dt_der_modif) ? $dateAffichee = $fond->dt_creation->nice('Europe/Paris', 'fr-FR') : $dateAffichee = $fond->dt_der_modif->nice('Europe/Paris', 'fr-FR') ;
+                                               ?>
+                                                <td><?= h($fond->nom) ?><?= $fond->ind_maj ? '&nbsp;&#x2714; (' .  $dateAffichee . ')' : '' ?>
 						<?php if ($fond->ind_suppr) {
 								echo('<b>(supprimé)</b>');
 							} 
@@ -160,14 +162,15 @@
 								if ($typeUserEnSession == PROFIL_CC) { 
 									if ($typeAffichage != "supprime") {
 										// l'affichage en cours concerne les fonds non-supprimés : on peut donc les supprimer ?>
-										<?php //$this->Form->postLink(__('Supprimer'), ['action' => 'delete', $fond->id], ['confirm' => __('Voulez-vous vraiment supprimer le fonds {0} ?', $fond->nom)])
-                                              //echo $this->Html->link(__('Supprimer'), ['action' => '', $fond->id], ['id' => 'del'.$fond->id, 'onclick' => 'javascript:askMe("del'.$fond->id.'","'.$fond->nom.'")'])
+										<?php 
+											//$this->Form->postLink(__('Supprimer'), ['action' => 'delete', $fond->id], ['confirm' => __('Voulez-vous vraiment supprimer le fonds {0} ?', $fond->nom)])
+											//echo $this->Html->link(__('Supprimer'), ['action' => '', $fond->id], ['id' => 'del'.$fond->id, 'onclick' => 'javascript:askMe("del'.$fond->id.'","'.$fond->nom.'")'])
                                         ?>
-                                        <a href="#" data-width="500" data-rel="popup1" data-id = "<?= $fond->id ?>" class="poplight">Supprimer</a>
+										<a href="#" data-width="500" data-rel="popup1" data-id = "<?= $fond->id ?>" class="poplight">Supprimer</a>
 									<?php }
 									else { 
-										// l'affichage en cours concerne les fonds supprimés : on peut donc les réactivés 
-										?>
+										// l'affichage en cours concerne les fonds supprimés : on peut donc les réactiver
+									?>
 										<?= $this->Form->postLink(__('Réactiver'), ['action' => 'reactivate', $fond->id], ['confirm' => __('Voulez-vous vraiment réactiver le fonds {0} ?', $fond->nom)]) ?>
 									<?php }
 								} ?>

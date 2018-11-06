@@ -25,11 +25,9 @@
 		<li><?= $this->Html->link(__('Interroger la base'), ['controller' => 'Fonds', 'action' => 'recherche']) ?></li>		
 		<li><?= $this->Html->link(__('Voir les statistiques'), ['controller' => 'Fonds', 'action' => 'statistiques']) ?></li>
 		<li><?= $this->Html->link(__('Générer des rapports'), ['controller' => 'Fonds', 'action' => 'generaterapports']) ?></li>
-		<!--
 		<?php if ($typeUserEnSession == PROFIL_CC) { ?>
-			<li><?= $this->Html->link(__('Voir l\'implantation'), ['controller' => 'Fonds', 'action' => 'implantation']) ?></li>		
+			<li><?= $this->Html->link(__('Voir l\'implantation'), ['controller' => 'Adresses', 'action' => 'implantation']) ?></li>		
 		<?php } ?>	
-		-->
 
 		<?php if ($typeUserEnSession != PROFIL_CO) { ?>
 		
@@ -75,7 +73,7 @@
 			<li><?= $this->Html->link(__('Type de traitements'), ['controller' => 'TypeTraitements','action' => 'index']) ?></li>
 			<li><?= $this->Html->link(__('Type d\'utilisateurs'), ['controller' => 'TypeUsers','action' => 'index']) ?></li>		
 			<li><?= $this->Html->link(__('Type de prise en charge'), ['controller' => 'TypePriseEnCharges','action' => 'index']) ?></li>	
-			<li><?= $this->Html->link(__('Type de réalisation de traitement'), ['controller' => 'TypeRealisationTraitements','action' => 'index']) ?></li>	
+			<li><?= $this->Html->link(__('Type de prestation'), ['controller' => 'TypeRealisationTraitements','action' => 'index']) ?></li>	
 		</div>
 		<?php } ?>
     </ul> 

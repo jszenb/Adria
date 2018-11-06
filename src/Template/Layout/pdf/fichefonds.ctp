@@ -169,7 +169,7 @@ $pdf->Ln(10);
     $pdf->ecritLigne("Mode d'entrée", $fond->type_entree->type);
     $pdf->ecritLigne("Document(s) afférent(s) au mode d'entrée", '', 70);
     
-	if (!empty($fond->type_doc_afferents)):
+    if (!empty($fond->type_doc_afferents)):
         foreach ($fond->type_doc_afferents as $typeDocAfferents): 
             $pdf->ecritLigne('', $typeDocAfferents->type);
         endforeach;
@@ -236,7 +236,7 @@ $pdf->Ln(10);
     $pdf->ecritBloc('Traitement matériel et intellectuel'); 
     
     $pdf->ecritLigne('Conditionnement(s)', '');
-	if (!empty($fond->type_conditionnements)):
+    if (!empty($fond->type_conditionnements)):
         foreach ($fond->type_conditionnements as $type_conditionnements): 
             $pdf->ecritLigne('', $type_conditionnements->type);
         endforeach;
@@ -260,96 +260,121 @@ $pdf->Ln(10);
     }
     $pdf->Ln();  
 	
-    // Bloc "Prestations de traitements externalisés"
-	// ----------------------------------------------
-    $pdf->ecritBloc('Prestations de traitements externalisés');   
-    $pdf->ecritLigne("Prise en charge du fonds", $fond->type_prise_en_charge->type);
-	$pdf->ecritLigne("Traitement envisagé / réalisé", $fond->type_realisation_traitement->type);
-	if ($fond->type_prise_en_charge->type != "Non") {
+    // Bloc "Orientation"
+    // -----------------
+    $pdf->ecritBloc('Orientation du fonds');
+    $pdf->ecritLigne('Lieu de stockage', LIB_STOCKAGE_CIBLE[$fond->stockage]);
+    $pdf->ecritLigne('Le fonds est-il communicable ?', LIB_COMMUNICATION[$fond->communication]);
+    $pdf->Ln();
+
+
+    // Bloc "Marché de traitement"
+    // ----------------------------------------------
+    if ( ( $pdf->monProfil != PROFIL_CO ) || ($pdf->monProfil == PROFIL_CO && $fond->type_prise_en_charge->id != NON_PRISE_EN_CHARGE) ) {
+      $pdf->ecritBloc('Marché de traitement');   
+      $pdf->ecritLigne("Prise en charge du fonds", $fond->type_prise_en_charge->type);
+      $pdf->ecritLigne("Prestation", $fond->type_realisation_traitement->type);
+      if ($fond->type_prise_en_charge->id != NON_PRISE_EN_CHARGE)  {
+		$fond->site_intervention == '' ? $fond->site_intervention = ' ' : '';
 		$pdf->ecritLigne("Site d'intervention", $fond->site_intervention);		
-		$pdf->ecritLigne("Dates envisagées / effectives", $fond->dt_deb_prestation->nice('Europe/Paris', 'fr-FR') . " - " . $fond->dt_fin_prestation->nice('Europe/Paris', 'fr-FR'));	
+                if (!empty($fond->dt_deb_prestation)) {
+                   $maDtDeb = $fond->dt_deb_prestation->nice('Europe/Paris', 'fr-FR') . " - ";
+                }
+                else {
+                   $maDtDeb = '';
+                }
+                if (!empty($fond->dt_fin_prestation)) {
+                   $maDtFin = $fond->dt_fin_prestation->nice('Europe/Paris', 'fr-FR');
+                }
+                else {
+                   $maDtFin = '';
+                }
+		$pdf->ecritLigne("Dates envisagées / effectives", $maDtDeb . $maDtFin);	
 		$pdf->ecritLigne("Responsable d'opérations", $fond->responsable_operation);
-	}
+      }
+    }
     $pdf->Ln();     
 	
     // Bloc complémentaire de l'administrateur
-	// ---------------------------------------
+    // ---------------------------------------
     if ($pdf->monProfil == PROFIL_CC){
 		
 		// Implantation en magasin
 		// -----------------------
-		$pdf->ecritBloc('Implantation en magasin');
-		foreach ($fond->adresses as $adresse) {
-			if (!empty($adresse['volume'])) {
-				$numAdresse = $adresse['num_seq'] + 1 ;
-				$monAdresse = "Adresse n°" . $numAdresse ;
-				$pdf->ecritLigne($monAdresse, '');
-				
- 				$pdf->ecritLigne("    Volume en mètres linéaires" , $adresse['volume']);
-				
-				$pdf->ecritLigne("    Magasin" , $adresse['magasin']);
-				
-				if (!empty($adresse['epi_fin'])) {
-					$epi = $adresse['epi_deb'] . ' à '. $adresse['epi_fin'] ;
+		if (!empty($fond->adresses)) {
+			$pdf->ecritBloc('Implantation en magasin');
+			foreach ($fond->adresses as $adresse) {
+				if (!empty($adresse['volume'])) {
+					$numAdresse = $adresse['num_seq'] + 1 ;
+					$monAdresse = "Adresse n°" . $numAdresse ;
+					$pdf->ecritLigne($monAdresse, '');
+					
+ 					$pdf->ecritLigne("    Volume en mètres linéaires" , $adresse['volume']);
+					
+					$pdf->ecritLigne("    Magasin" , $adresse['magasin']);
+					
+					if (!empty($adresse['epi_fin'])) {
+						$epi = $adresse['epi_deb'] . ' à '. $adresse['epi_fin'] ;
+					}
+					else {
+						$epi = $adresse['epi_deb'];
+					}
+					$pdf->ecritLigne("    Epi(s)" , $epi);
+					
+					if (!empty($adresse['travee_fin'])) {
+						$travee = $adresse['travee_deb'] . ' à '. $adresse['travee_fin'] ;
+					}
+					else {
+						$travee = $adresse['travee_deb'];
+					}
+					$pdf->ecritLigne("    Travée(s)" , $travee);				
+					
+					if (!empty($adresse['tablette_fin'])) {
+						$tablette = $adresse['tablette_deb'] . ' à '. $adresse['tablette_fin'] ;
+					}
+					else {
+						$tablette = $adresse['tablette_deb'];
+					}
+					$pdf->ecritLigne("    Tablette(s)" , $tablette);	
+					$pdf->Ln();				
 				}
-				else {
-					$epi = $adresse['epi_deb'];
-				}
-				$pdf->ecritLigne("    Epi(s)" , $epi);
-				
-				if (!empty($adresse['travee_fin'])) {
-					$travee = $adresse['travee_deb'] . ' à '. $adresse['travee_fin'] ;
-				}
-				else {
-					$travee = $adresse['travee_deb'];
-				}
-				$pdf->ecritLigne("    Travée(s)" , $travee);				
-				
-				if (!empty($adresse['tablette_fin'])) {
-					$tablette = $adresse['tablette_deb'] . ' à '. $adresse['tablette_fin'] ;
-				}
-				else {
-					$tablette = $adresse['tablette_deb'];
-				}
-				$pdf->ecritLigne("    Tablette(s)" , $tablette);	
-				$pdf->Ln();				
 			}
 		}
 		
 		
 		// Informations complémentaires pour l'administrateur
 		// --------------------------------------------------
-        $pdf->ecritBloc('Informations complémentaires pour l\'administrateur');
+		$pdf->ecritBloc('Informations complémentaires pour l\'administrateur');
+       	 
+		$pdf->ecritLigne('Identifiant du fonds en base',$fond->id);
         
-        $pdf->ecritLigne('Identifiant du fonds en base',$fond->id);
-        
-        if (!empty($fond->dt_creation)) {
-            $pdf->ecritLigne('Date de création', $fond->dt_creation->nice('Europe/Paris', 'fr-FR'));
-        }
-        else {
-            $pdf->ecritLigne('Date de création', '');
-        }
-        
-        if (!empty($fond->dt_der_modif)) {
-            $pdf->ecritLigne('Date de dernière modification', $fond->dt_der_modif->nice('Europe/Paris', 'fr-FR'));
-        }
-        else {
-            $pdf->ecritLigne('Date de dernière modification', '');
-        }  
-        
-        $fond->ind_suppr ? $libsuppr = 'Oui' : $libsuppr = 'Non' ; 
-        $pdf->ecritLigne('Le fonds est-il considéré comme supprimé ?', $libsuppr);
-        $pdf->ecritLigne('Raison de la suppression',$fond->raison_suppression->raison);
-        
-        if (!empty($fond->dt_suppr)) {
-            $pdf->ecritLigne('Date de la suppression', $fond->dt_suppr->nice('Europe/Paris', 'fr-FR'));
-        }
-        else {
-            $pdf->ecritLigne('Date de la suppression', '');
-        }              
-        
-        $pdf->Ln();    
-    }
+		if (!empty($fond->dt_creation)) {
+			$pdf->ecritLigne('Date de création', $fond->dt_creation->nice('Europe/Paris', 'fr-FR'));
+		}
+		else {
+			$pdf->ecritLigne('Date de création', '');
+		}
+
+		if (!empty($fond->dt_der_modif)) {
+			$pdf->ecritLigne('Date de dernière modification', $fond->dt_der_modif->nice('Europe/Paris', 'fr-FR'));
+		}
+		else {
+			$pdf->ecritLigne('Date de dernière modification', '');
+		}  
+
+		$fond->ind_suppr ? $libsuppr = 'Oui' : $libsuppr = 'Non' ; 
+		$pdf->ecritLigne('Le fonds est-il considéré comme supprimé ?', $libsuppr);
+		$pdf->ecritLigne('Raison de la suppression',$fond->raison_suppression->raison);
+
+		if (!empty($fond->dt_suppr)) {
+			$pdf->ecritLigne('Date de la suppression', $fond->dt_suppr->nice('Europe/Paris', 'fr-FR'));
+		}
+		else {
+			$pdf->ecritLigne('Date de la suppression', '');
+		}              
+
+		$pdf->Ln();    
+	}
         
     
 // Close and output PDF document

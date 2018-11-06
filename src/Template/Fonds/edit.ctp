@@ -96,20 +96,46 @@
             //echo $this->Form->input('dt_suppr', ['empty' => true, 'default' => '']);
 		?>
 		
-		<h4>Prestations de traitements externalisés</h4>
+		<h4>Marché de traitement</h4>
 		<?php
             echo $this->Form->input('type_prise_en_charge_id', ['options' => $typePriseEnCharges, 'label' => 'Prise en charge du fonds', 'onChange' => 'onChangePriseEnCharge()', 'required' => true, 'empty' => false]);
             ecrireLienInfobulle("TypePriseEnCharges", "Type de prise en charge");					
-            echo $this->Form->input('type_realisation_traitement_id', ['options' => $typeRealisationTraitements, 'label' => 'Traitement envisagé / réalisé', 'onChange' => 'onChangeRealisationTraitement()', 'required' => true, 'empty' => false]);
+            echo $this->Form->input('type_realisation_traitement_id', ['options' => $typeRealisationTraitements, 'label' => 'Prestation', 'onChange' => 'onChangeRealisationTraitement()', 'required' => true, 'empty' => false]);
             ecrireLienInfobulle("TypeRealisationTraitements", "Type de réalisation de traitement");					
 			echo $this->Form->input('site_intervention', ['label' => 'Site d\'intervention']);		
 			$this->Form->templates(['dateWidget' => '{{day}}{{month}}{{year}}']);
 
-			echo $this->Form->input('dt_deb_prestation', ['label' => 'Dates envisagées / effectives (début)', 'minYear' => 2017, 'day' => ['id' => 'dt-deb-prestation-day'], 'month' => ['id' => 'dt-deb-prestation-month'], 'year' => ['id' => 'dt-deb-prestation-year'], 'empty' => true, 'monthNames' => false]);	
-			echo $this->Form->input('dt_fin_prestation', ['label' => 'Dates envisagées / effectives (fin)', 'minYear' => 2017, 'day' => ['id' => 'dt-fin-prestation-day'], 'month' => ['id' => 'dt-fin-prestation-month'], 'year' => ['id' => 'dt-fin-prestation-year'],'empty' => true, 'monthNames' => false]);	
+			echo $this->Form->input('dt_deb_prestation', ['type' => 'date', 'label' => 'Dates envisagées / effectives (début)', 'minYear' => 2017, 'day' => ['id' => 'dt-deb-prestation-day'], 'month' => ['id' => 'dt-deb-prestation-month'], 'year' => ['id' => 'dt-deb-prestation-year'], 'empty' => true, 'monthNames' => false]);	
+			echo $this->Form->input('dt_fin_prestation', ['type' => 'date', 'label' => 'Dates envisagées / effectives (fin)', 'minYear' => 2017, 'day' => ['id' => 'dt-fin-prestation-day'], 'month' => ['id' => 'dt-fin-prestation-month'], 'year' => ['id' => 'dt-fin-prestation-year'],'empty' => true, 'monthNames' => false]);	
 			echo $this->Form->input('responsable_operation', ['label' => 'Responsable d\'opérations']);				
 		
-			
+		?>	
+		<h4>Orientation du fonds</h4>
+		<label>Lieu de stockage cible</label>
+		<table>
+			<tr>
+				<td width=1%>
+				</td>
+				<td>
+					<?php
+	 				echo $this->Form->radio('stockage', [LIB_STOCKAGE_CIBLE[0], LIB_STOCKAGE_CIBLE[1], LIB_STOCKAGE_CIBLE[2], LIB_STOCKAGE_CIBLE[3]]);
+					?>
+				</td>
+			</tr>
+		</table>
+		<label>Le fonds est-il communicable ?</label>
+		<table>
+			<tr>
+				<td width=1%>
+				</td>
+				<td>
+					<?php
+	 				echo $this->Form->radio('communication', [LIB_COMMUNICATION[0], LIB_COMMUNICATION[1], LIB_COMMUNICATION[2]]);
+					?>
+				</td>
+			</tr>
+		</table>
+		<?php
 		/********************************************** DONNEES POUR L'ADMINISTRATEUR *******************************************/
 		if ($typeUserEnSession == PROFIL_CC) { 
 		?>
@@ -141,10 +167,10 @@
 				<td>
 					<?php echo $this->Form->input('adresses.0.id', ['type' => 'hidden']); ?>
 					<?php echo $this->Form->input('adresses.0.num_seq', ['type' => 'hidden', 'value' => '0']); ?>
-					<?php echo $this->Form->input('adresses.0.volume', ['size'=>5, 'min' => 0, 'type' => 'float', 'required' => true, 'label' => '']); ?>
+					<?php echo $this->Form->input('adresses.0.volume', ['size'=>5, 'min' => 0, 'type' => 'float',  'onChange' => 'onChangeAdresse(0)', 'label' => '']); ?>
 				</td>
 				<td>
-					<?php echo $this->Form->input('adresses.0.magasin', ['options' => LISTE_MAGASINS, 'required' => true, 'label' => '']); ?>
+					<?php echo $this->Form->input('adresses.0.magasin', ['options' => LISTE_MAGASINS, 'empty' => true, 'label' => '']); ?>
 				</td>
 				<td>
 					<?php echo $this->Form->input('adresses.0.epi_deb', ['type' => 'int', 'size' => '2', 'label' => '']); ?> 

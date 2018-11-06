@@ -129,7 +129,7 @@
 				$totalGo = $totalGo + (float)$fonds->nb_go;
 			?>
             <tr>
-                <td><?= h($fonds->nom) ?></td>
+                <td><?= h($fonds->nom) ?><?= $fonds->ind_maj ? '&nbsp;&#x2714; (' : '' ?><?= $fonds->ind_maj ?  h($fonds->dt_der_modif->nice('Europe/Paris', 'fr-FR')) . ')' : '' ?></td>
                 <td>
 					<?= h($fonds->type_fond->type) 
 					/*foreach ($type_fonds as $type_fond): 

@@ -266,17 +266,32 @@
 	<?= $this->Text->autoParagraph(h($fond->observations)); ?>
 	<?php } ?>
 
-<!-- ******************************************* PRESTATIONS DE TRAITEMENT EXTERNALISE ******************************************* -->
-	
+<!-- ******************************************* ORIENTATIONS ******************************************* -->
+
 	<br>	
-	<h4><?= __('Prestations de traitements externalisés') ?></h4>
+	<h4><?= __('Orientation du fonds') ?></h4>
+	<table class="vertical-table">
+	<tr>
+		<th><?= __('Lieu de stockage cible') ?></th>
+		<td><?= $fond->has('stockage') ? LIB_STOCKAGE_CIBLE[h($fond->stockage)] : '' ?></td>
+	</tr>
+	<tr>
+		<th><?= __('Le fonds est-il communicable ?') ?></th>
+		<td><?= $fond->has('stockage') ? LIB_COMMUNICATION[h($fond->communication)] : '' ?></td>
+	</tr>
+	</table>
+
+<!-- ******************************************* MARCHE DE TRAITEMENT ******************************************* -->
+        <?php if ( ($typeUserEnSession != PROFIL_CO) || ($typeUserEnSession == PROFIL_CO && $fond->type_prise_en_charge->id != NON_PRISE_EN_CHARGE) ) {?>
+	<br>	
+	<h4><?= __('Marché de traitement') ?></h4>
 	<table class="vertical-table">
         <tr>
             <th><?= __('Prise en charge du fonds') ?></th>
             <td><?= $fond->has('type_prise_en_charge') ? h($fond->type_prise_en_charge->type) : '' ?></td>
         </tr>
         <tr>
-            <th><?= __('Traitement envisagé / réalisé') ?></th>
+            <th><?= __('Prestation') ?></th>
             <td><?= $fond->has('type_realisation_traitement') ? h($fond->type_realisation_traitement->type) : '' ?></td>
         </tr>	
 		<tr>
@@ -292,6 +307,7 @@
             <td><?= $fond->has('responsable_operation') ? h($fond->responsable_operation) : '' ?></td>			
 		</tr>
 	</table>
+	<?php } ?>
 	
 <!-- ******************************************* DONNEES POUR L'ADMINISTRATEUR ******************************************* -->
 	

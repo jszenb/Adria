@@ -7,7 +7,7 @@
     </ul>
 </nav>
 <div class="typeRealisationTraitements view large-9 medium-8 columns content">
-    <h3>Type de réalisation de traitement : <?= h($typeRealisationTraitement->type) ?></h3>
+    <h3>Type de prestation : <?= h($typeRealisationTraitement->type) ?></h3>
     <table class="vertical-table">
         <tr>
             <th><?= __('Type') ?></th>

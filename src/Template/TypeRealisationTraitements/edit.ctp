@@ -9,7 +9,7 @@
 <div class="typeRealisationTraitements form large-9 medium-8 columns content">
     <?= $this->Form->create($typeRealisationTraitement) ?>
     <fieldset>
-        <legend><?= __('Modifier un type de réalisation de traitement') ?></legend>
+        <legend><?= __('Modifier un type de prestation') ?></legend>
         <?php
             echo $this->Form->input('type');
             echo $this->Form->input('description');

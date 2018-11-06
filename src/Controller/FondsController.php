@@ -196,107 +196,113 @@ class FondsController extends AppController
     public function add()
     {
         $erreur_detectee = false;
-		$volumetrie = array();
+        $volumetrie = array();
 		
-		// Crée à partir d'une chaîne datetime.
-		$time = Time::now('Europe/Paris')->i18nFormat('YYYY-MM-dd HH:mm:ss');		
-		$message = '';
-		
-		// Données nécessaires sur l'utilisateur pour savoir qui est l'utilisateur (son profil, son entité documentaire)
-		$monUser = $this->request->session()->read('Auth');
-		
-		// Routine de création
-		$fond = $this->Fonds->newEntity();
+        // Crée à partir d'une chaîne datetime.
+        $time = Time::now('Europe/Paris')->i18nFormat('YYYY-MM-dd HH:mm:ss');		
+        $message = '';
+
+        // Données nécessaires sur l'utilisateur pour savoir qui est l'utilisateur (son profil, son entité documentaire)
+        $monUser = $this->request->session()->read('Auth');
+
+        // Routine de création
+        $fond = $this->Fonds->newEntity();
         if ($this->request->is('post')) {
 			
-			// Récupération des données saisies par l'utilisateur
+            // Récupération des données saisies par l'utilisateur
             $fond = $this->Fonds->patchEntity($fond, $this->request->data);
 			
-			// S'il y a un type de document lié à un support écrit, il faut un métrage linéaire > 0
-			// S'il y a un type de document lié à un support numérique, il faut un nombre de giga-octet > 0
-			$volumetrie = $this->metrageLineaire($fond, $fond['nb_ml'], $fond['nb_go'], $fond['ind_nb_ml_inconnu'], $fond['ind_nb_go_inconnu'] );
+            // S'il y a un type de document lié à un support écrit, il faut un métrage linéaire > 0
+            // S'il y a un type de document lié à un support numérique, il faut un nombre de giga-octet > 0
+            $volumetrie = $this->metrageLineaire($fond, $fond['nb_ml'], $fond['nb_go'], $fond['ind_nb_ml_inconnu'], $fond['ind_nb_go_inconnu'] );
 			
-			if (!$erreur_detectee) {
+            if (!$erreur_detectee) {
 				
-				// Si les volumétries sont inconnues, on force leurs mesures à zéro
-				$fond['ind_nb_ml_inconnu'] ? $fond['nb_ml'] = 0 : null ;
-				$fond['ind_nb_go_inconnu'] ? $fond['nb_go'] = 0 : null ;
+               // Si les volumétries sont inconnues, on force leurs mesures à zéro
+               $fond['ind_nb_ml_inconnu'] ? $fond['nb_ml'] = 0 : null ;
+               $fond['ind_nb_go_inconnu'] ? $fond['nb_go'] = 0 : null ;
+			
+               // Si les dates extrêmes sont inconnues, on force leurs valeurs à zéro
+               $fond['ind_annee'] ? $fond['annee_deb'] = '' : null ;
+               $fond['ind_annee'] ? $fond['annee_fin'] = '' : null ;			
 				
-				// Si les dates extrêmes sont inconnues, on force leurs valeurs à zéro
-				$fond['ind_annee'] ? $fond['annee_deb'] = '' : null ;
-				$fond['ind_annee'] ? $fond['annee_fin'] = '' : null ;			
+               // Remplissons encore quelques champs : date de dernière modification
+               $fond['dt_creation'] = $time;	
 				
-				// Remplissons encore quelques champs : date de dernière modification
-				$fond['dt_creation'] = $time;	
-				
-				if ($this->Fonds->save($fond)) {
+               // Si le marché de traitement est sans prise en charge, toutes les valeurs sont nulles
+               if ($fond['type_prise_en_charge_id'] == NON_PRISE_EN_CHARGE){
+                  $fond['site_intervention'] = '';
+                  $fond['responsable_operation'] = '';
+                  $fond['dt_deb_prestation'] = '';
+                  $fond['dt_fin_prestation'] = '';
+               }
+
+               if ($this->Fonds->save($fond)) {
+                  // Envoi d'un mail pour prévenir l'administrateur que le fonds a été ajouté
+                  // Attention : laisser les "" sinon le parseur PHP ne comprend pas bien le \n
+                  $message = "Bonjour,\n\nUn nouveau fonds a été ajouté dans Adria." ;
+                  $message .= "\n\nUtilisateur : " . $monUser['User']['nom'] . ' ' . $monUser['User']['prenom'] ;
+                  $message .= "\nLogin utilisateur : " . $monUser['User']['login'] ;
+                  $message .= "\nCourriel utilisateur : " . $monUser['User']['mail'];
+                  $message .= "\nNom du fonds ajouté : " . $fond['nom'] ;
+                  $message .= "\nEntité documentaire du fonds ajouté : ". $this->Fonds->EntiteDocs->get($fond['entite_doc_id'])['nom']  ;
+                  $message .= "\nIdentifiant du fonds ajouté : " . $fond['id'] ;
+                  $message .= "\nDate de l'ajout : " . $fond['dt_creation'] ;					
+                  $message .= "\n\n-----------------";
+                  $message .= "\n\nCeci est un message automatique envoyé par Adria.";
 					
-					// Envoi d'un mail pour prévenir l'administrateur que le fonds a été ajouté
-					// Attention : laisser les "" sinon le parseur PHP ne comprend pas bien le \n
-					$message = "Bonjour,\n\nUn nouveau fonds a été ajouté dans Adria." ;
-					$message .= "\n\nUtilisateur : " . $monUser['User']['nom'] . ' ' . $monUser['User']['prenom'] ;
-					$message .= "\nLogin utilisateur : " . $monUser['User']['login'] ;
-					$message .= "\nCourriel utilisateur : " . $monUser['User']['mail'];
-					$message .= "\nNom du fonds ajouté : " . $fond['nom'] ;
-					$message .= "\nEntité documentaire du fonds ajouté : ". $this->Fonds->EntiteDocs->get($fond['entite_doc_id'])['nom']  ;
-					$message .= "\nIdentifiant du fonds ajouté : " . $fond['id'] ;
-					$message .= "\nDate de l'ajout : " . $fond['dt_creation'] ;					
-					$message .= "\n\n-----------------";
-					$message .= "\n\nCeci est un message automatique envoyé par Adria.";
-					
-					$email = new Email('default');
-					$email->to(MAIL_ADMIN)
-						->subject('[Administrateur Adria] : ajout de nouveau fonds')
-						->send( $message );
-					
-					// On indique à l'utilisateur que le fonds est créé et on le renvoie sur la 
-					// page de consultation du fonds.
-					$this->Flash->success(__('Fonds ajouté.'));
-					
-					return $this->redirect(['action' => 'view/'.$fond['id']]);
-				} else {
-					$this->Flash->error(__('Le fonds n\'a pas pu être créé.'));
-				}
-			}
+                  $email = new Email('default');
+                  $email->to(MAIL_ADMIN)
+                        ->subject('[Administrateur Adria] : ajout de nouveau fonds')
+                        ->send( $message );
+
+                  // On indique à l'utilisateur que le fonds est créé et on le renvoie sur la 
+                  // page de consultation du fonds.
+                  $this->Flash->success(__('Fonds ajouté.'));
+
+                  return $this->redirect(['action' => 'view/'.$fond['id']]);
+               } 
+               else {
+                  $this->Flash->error(__('Le fonds n\'a pas pu être créé.'));
+               }
+            }
         }
 		
-		// Affichage des données nécessaires à la page de création : 
+        // Affichage des données nécessaires à la page de création : 
 		
-		$monEntiteDoc = $monUser['User']['entite_doc_id'];
-		
-		$monTypeUser = $monUser['User']['type_user_id'];
+        $monEntiteDoc = $monUser['User']['entite_doc_id'];
+        $monTypeUser = $monUser['User']['type_user_id'];
 	
-		// Le profil CC peut créer les données comme il le souhaite
-		// Le profil CA peut créer des données uniquement pour son entité documentaire et ses lieux de conservation
-		if ($monTypeUser == PROFIL_CC) {
-			$entiteDocs = $this->Fonds->EntiteDocs->find('list', ['limit' => 200]);
-			$lieuConservations = $this->Fonds->LieuConservations->find('list', ['limit' => 200, 'order' => ['nom' => 'ASC']]);
-		}
-		else {
-			$entiteDocs = $this->Fonds->EntiteDocs->find('list')
-				->where(['EntiteDocs.id' => $monEntiteDoc]);
+        // Le profil CC peut créer les données comme il le souhaite
+        // Le profil CA peut créer des données uniquement pour son entité documentaire et ses lieux de conservation
+        if ($monTypeUser == PROFIL_CC) {
+            $entiteDocs = $this->Fonds->EntiteDocs->find('list', ['limit' => 200]);
+            $lieuConservations = $this->Fonds->LieuConservations->find('list', ['limit' => 200, 'order' => ['nom' => 'ASC']]);
+        }
+        else {
+            $entiteDocs = $this->Fonds->EntiteDocs->find('list')
+                               ->where(['EntiteDocs.id' => $monEntiteDoc]);
 			
-			// Limitation des lieux de conservation à ceux dépendant de l'entité documentaire en question
-			$lieuConservations = $this->Fonds->EntiteDocs->LieuConservations->find('list', ['limit' => 200, 'order' => ['LieuConservations.nom' => 'ASC']]);
-			$lieuConservations->matching('EntiteDocs', function ($q) use ($monEntiteDoc)  {
-				return $q->where(['EntiteDocs.id' => $monEntiteDoc]);
-			});
-		}
+            // Limitation des lieux de conservation à ceux dépendant de l'entité documentaire en question
+            $lieuConservations = $this->Fonds->EntiteDocs->LieuConservations->find('list', ['limit' => 200, 'order' => ['LieuConservations.nom' => 'ASC']]);
+            $lieuConservations->matching('EntiteDocs', function ($q) use ($monEntiteDoc)  {
+                                                                         return $q->where(['EntiteDocs.id' => $monEntiteDoc]);
+                                                       });
+        }
 		
-		
-		// Récupération des données de références
-		$typeFonds = $this->Fonds->TypeFonds->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
-		$typeTraitements = $this->Fonds->TypeTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
+        // Récupération des données de références
+        $typeFonds = $this->Fonds->TypeFonds->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
+        $typeTraitements = $this->Fonds->TypeTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeNumerisations = $this->Fonds->TypeNumerisations->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeInstrRechs = $this->Fonds->TypeInstrRechs->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeStatJurids = $this->Fonds->TypeStatJurids->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeEntrees = $this->Fonds->TypeEntrees->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeDocAfferents = $this->Fonds->TypeDocAfferents->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeAccroissements = $this->Fonds->TypeAccroissements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);		
-		$typePriseEnCharges = $this->Fonds->TypePriseEnCharges->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
-		$priseEnChargeNon = $this->Fonds->TypePriseEnCharges->find('all', ['where' => ['type' => PAS_PRISE_EN_CHARGE]])->first();
-		$typeRealisationTraitements = $this->Fonds->TypeRealisationTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);		
-		$realisationTraitementAucun = $this->Fonds->TypeRealisationTraitements->find('all', ['where' => ['type' => AUCUN_TRAITEMENT_REALISE]])->first();	
+        $typePriseEnCharges = $this->Fonds->TypePriseEnCharges->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
+        $priseEnChargeNon = $this->Fonds->TypePriseEnCharges->find('all', ['where' => ['type' => PAS_PRISE_EN_CHARGE]])->first();
+        $typeRealisationTraitements = $this->Fonds->TypeRealisationTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);		
+        $realisationTraitementAucun = $this->Fonds->TypeRealisationTraitements->find('all', ['where' => ['type' => AUCUN_TRAITEMENT_REALISE]])->first();	
         $raisonSuppressions = $this->Fonds->RaisonSuppressions->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $aireCulturelles = $this->Fonds->AireCulturelles->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $thematiques = $this->Fonds->Thematiques->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
@@ -304,26 +310,28 @@ class FondsController extends AppController
         $typeDocs = $this->Fonds->TypeDocs->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);		
         $typeSupports = $this->Fonds->TypeSupports->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);			
 	
-        $this->set(compact(	'fond', 
-							'entiteDocs', 
-							'typeFonds', 
-							'typeTraitements', 
-							'aideTraitements', 
-							'typeNumerisations', 
-							'typeInstrRechs', 
-							'typeStatJurids', 
-							'typeEntrees', 
-							'typeAccroissements', 
-							'typePriseEnCharges', 'priseEnChargeNon', 
-							'typeRealisationTraitements', 'realisationTraitementAucun', 
-							'raisonSuppressions',
-							'typeDocAfferents', 
-							'aireCulturelles',
-							'lieuConservations',
-							'thematiques', 
-							'typeConditionnements', 
-							'typeDocs', 
-							'typeSupports'));
+        $this->set(compact('fond', 
+                           'entiteDocs', 
+                           'typeFonds', 
+                           'typeTraitements', 
+                           'aideTraitements', 
+                           'typeNumerisations', 
+                           'typeInstrRechs', 
+                           'typeStatJurids', 
+                           'typeEntrees', 
+                           'typeAccroissements', 
+                           'typePriseEnCharges', 
+                           'priseEnChargeNon', 
+                           'typeRealisationTraitements',
+                           'realisationTraitementAucun', 
+                           'raisonSuppressions',
+                           'typeDocAfferents', 
+                           'aireCulturelles',
+                           'lieuConservations',
+                           'thematiques', 
+                           'typeConditionnements', 
+                           'typeDocs', 
+                           'typeSupports'));
         $this->set('_serialize', ['fond']);
     }
 
@@ -336,104 +344,95 @@ class FondsController extends AppController
      */
     public function edit($id = null)
     {
-        $erreur_detectee = false;
-		$volumetrie = array();
-		// Crée à partir d'une chaîne datetime.
-		$time = Time::now('Europe/Paris')->i18nFormat('YYYY-MM-dd HH:mm:ss');
+	$erreur_detectee = false;
+	$volumetrie = array();
+	// Crée à partir d'une chaîne datetime.
+	$time = Time::now('Europe/Paris')->i18nFormat('YYYY-MM-dd HH:mm:ss');
 		
-        $fond = $this->Fonds->get($id, [
-            'contain' => ['TypeDocAfferents', 'AireCulturelles', 'LieuConservations', 'Thematiques', 'TypeConditionnements', 'TypeDocs', 'TypeSupports', 'Adresses']
-        ]);
+	$fond = $this->Fonds->get($id, [ 'contain' => ['TypeDocAfferents', 'AireCulturelles', 'LieuConservations', 'Thematiques', 'TypeConditionnements', 'TypeDocs', 'TypeSupports', 'Adresses'] ]);
 		
-        if ($this->request->is(['patch', 'post', 'put'])) {
+	if ($this->request->is(['patch', 'post', 'put'])) {
 
-			//dump($this->request->data);
+		//dump($this->request->data);
 		
-            $fond = $this->Fonds->patchEntity($fond, $this->request->data);
+		$fond = $this->Fonds->patchEntity($fond, $this->request->data);
 			
-			
-			//dump($fond);
-			
-			/*$fond->adresses[0]['num_seq'] = 0;
-			$fond->adresses[0]['volume'] =  $this->request->data['volume_0'];
-			$fond->adresses[0]['epi_deb'] =  $this->request->data['epi_deb_0'];
-			$fond->adresses[0]['epi_fin'] =  $this->request->data['epi_fin_0'];
-			$fond->adresses[0]['travee_deb'] =  $this->request->data['travee_deb_0'];
-			$fond->adresses[0]['travee_fin'] =  $this->request->data['travee_fin_0'];
-			$fond->adresses[0]['tablette_deb'] =  $this->request->data['tablette_deb_0'];
-			$fond->adresses[0]['tablette_fin'] =  $this->request->data['tablette_deb_0'];	*/	
-			
-			//dump($fond);
-			
+		//dump($fond);
 				
-			if ($fond->errors())
-			{
-				$erreur_detectee = true;
+		if ($fond->errors()) {
+			$erreur_detectee = true;
+			$this->Flash->error(__('Le fonds n\'a pas pu être modifié.'));
+		}
+	
+		if (!$erreur_detectee) {
+				
+			// Si les volumétries sont inconnues, on force leurs mesures à zéro
+			$fond['ind_nb_ml_inconnu'] ? $fond['nb_ml'] = 0 : null ;
+			$fond['ind_nb_go_inconnu'] ? $fond['nb_go'] = 0 : null ;
+			
+			// Si les dates extrêmes sont inconnues, on force leurs valeurs à zéro
+			$fond['ind_annee'] ? $fond['annee_deb'] = '' : null ;
+			$fond['ind_annee'] ? $fond['annee_fin'] = '' : null ;					
+			
+			// Remplissons encore quelques champs : date de dernière modification
+			$fond['dt_der_modif'] = $time;
+	
+			// Si le marché de traitement est sans prise en charge, toutes les valeurs sont nulles
+       			if ($fond['type_prise_en_charge_id'] == NON_PRISE_EN_CHARGE){
+				$fond['site_intervention'] = '';
+				$fond['responsable_operation'] = '';
+				$fond['dt_deb_prestation'] = '';
+				$fond['dt_fin_prestation'] = '';
+			}
+	
+			if ($this->Fonds->save($fond)) {
+				$this->Flash->success(__('Fonds modifié.'));
+	
+				return $this->redirect(['action' => 'view/'.$fond['id']]);
+			} else {
 				$this->Flash->error(__('Le fonds n\'a pas pu être modifié.'));
 			}
-
-			if (!$erreur_detectee) {
-				
-				// Si les volumétries sont inconnues, on force leurs mesures à zéro
-				$fond['ind_nb_ml_inconnu'] ? $fond['nb_ml'] = 0 : null ;
-				$fond['ind_nb_go_inconnu'] ? $fond['nb_go'] = 0 : null ;
-				
-				// Si les dates extrêmes sont inconnues, on force leurs valeurs à zéro
-				$fond['ind_annee'] ? $fond['annee_deb'] = '' : null ;
-				$fond['ind_annee'] ? $fond['annee_fin'] = '' : null ;					
-				
-				// Remplissons encore quelques champs : date de dernière modification
-				$fond['dt_der_modif'] = $time;
-
-				if ($this->Fonds->save($fond)) {
-					$this->Flash->success(__('Fonds modifié.'));
-	
-					return $this->redirect(['action' => 'view/'.$fond['id']]);
-				} else {
-					$this->Flash->error(__('Le fonds n\'a pas pu être modifié.'));
-				}
-
-			}
-        }
-		// Affichage des données nécessaires à la page de création : 
-		
-		// Données nécessaires sur l'utilisateur pour savoir qui est l'utilisateur (son profil, son entité documentaire)
-		$monUser = $this->request->session()->read('Auth');
-		
-		$monEntiteDoc = $monUser['User']['entite_doc_id'];
-		
-		$monTypeUser = $monUser['User']['type_user_id'];
-	
-		// Le profil CC peut créer les données comme il le souhaite
-		// Le profil CA peut créer des données uniquement pour son entité documentaire et ses lieux de conservation
-		if ($monTypeUser == PROFIL_CC) {
-			$entiteDocs = $this->Fonds->EntiteDocs->find('list', ['limit' => 200]);
-			$lieuConservations = $this->Fonds->LieuConservations->find('list', ['limit' => 200, 'order' => ['nom' => 'ASC']]);
 		}
-		else {
-			$entiteDocs = $this->Fonds->EntiteDocs->find('list')
-				->where(['EntiteDocs.id' => $monEntiteDoc]);
-			
-			// Limitation des lieux de conservation à ceux dépendant de l'entité documentaire en question
-			$lieuConservations = $this->Fonds->EntiteDocs->LieuConservations->find('list', ['limit' => 200, 'order' => ['LieuConservations.nom' => 'ASC']]);
-			$lieuConservations->matching('EntiteDocs', function ($q) use ($monEntiteDoc)  {
-				return $q->where(['EntiteDocs.id' => $monEntiteDoc]);
-			});
-		}
+       	}
+	// Affichage des données nécessaires à la page de création : 
 		
-		// Récupération des données de références
-		$typeFonds = $this->Fonds->TypeFonds->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
-		$typeTraitements = $this->Fonds->TypeTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
+	// Données nécessaires sur l'utilisateur pour savoir qui est l'utilisateur (son profil, son entité documentaire)
+	$monUser = $this->request->session()->read('Auth');
+		
+	$monEntiteDoc = $monUser['User']['entite_doc_id'];
+		
+	$monTypeUser = $monUser['User']['type_user_id'];
+	
+	// Le profil CC peut créer les données comme il le souhaite
+	// Le profil CA peut créer des données uniquement pour son entité documentaire et ses lieux de conservation
+	if ($monTypeUser == PROFIL_CC) {
+		$entiteDocs = $this->Fonds->EntiteDocs->find('list', ['limit' => 200]);
+		$lieuConservations = $this->Fonds->LieuConservations->find('list', ['limit' => 200, 'order' => ['nom' => 'ASC']]);
+	}
+	else {
+		$entiteDocs = $this->Fonds->EntiteDocs->find('list')
+			->where(['EntiteDocs.id' => $monEntiteDoc]);
+		
+		// Limitation des lieux de conservation à ceux dépendant de l'entité documentaire en question
+		$lieuConservations = $this->Fonds->EntiteDocs->LieuConservations->find('list', ['limit' => 200, 'order' => ['LieuConservations.nom' => 'ASC']]);
+		$lieuConservations->matching('EntiteDocs', function ($q) use ($monEntiteDoc)  {
+			return $q->where(['EntiteDocs.id' => $monEntiteDoc]);
+		});
+	}
+		
+	// Récupération des données de références
+	$typeFonds = $this->Fonds->TypeFonds->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
+	$typeTraitements = $this->Fonds->TypeTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeNumerisations = $this->Fonds->TypeNumerisations->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeInstrRechs = $this->Fonds->TypeInstrRechs->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeStatJurids = $this->Fonds->TypeStatJurids->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeEntrees = $this->Fonds->TypeEntrees->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeDocAfferents = $this->Fonds->TypeDocAfferents->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $typeAccroissements = $this->Fonds->TypeAccroissements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
-		$typePriseEnCharges = $this->Fonds->TypePriseEnCharges->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
-		$priseEnChargeNon = $this->Fonds->TypePriseEnCharges->find('all', ['where' => ['type' => PAS_PRISE_EN_CHARGE]])->first();
-		$typeRealisationTraitements = $this->Fonds->TypeRealisationTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);		
-		$realisationTraitementAucun = $this->Fonds->TypeRealisationTraitements->find('all', ['where' => ['type' => AUCUN_TRAITEMENT_REALISE]])->first();		
+	$typePriseEnCharges = $this->Fonds->TypePriseEnCharges->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
+	$priseEnChargeNon = $this->Fonds->TypePriseEnCharges->find('all', ['where' => ['type' => PAS_PRISE_EN_CHARGE]])->first();
+	$typeRealisationTraitements = $this->Fonds->TypeRealisationTraitements->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);		
+	$realisationTraitementAucun = $this->Fonds->TypeRealisationTraitements->find('all', ['where' => ['type' => AUCUN_TRAITEMENT_REALISE]])->first();		
         $raisonSuppressions = $this->Fonds->RaisonSuppressions->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $aireCulturelles = $this->Fonds->AireCulturelles->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
         $thematiques = $this->Fonds->Thematiques->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);
@@ -442,24 +441,24 @@ class FondsController extends AppController
         $typeSupports = $this->Fonds->TypeSupports->find('list', ['limit' => 200, 'order' => ['id' => 'ASC']]);			
 		
         $this->set(compact(	'fond', 
-							'entiteDocs', 
-							'typeFonds', 
-							'typeTraitements', 
-							'typeNumerisations', 
-							'typeInstrRechs', 
-							'typeStatJurids', 
-							'typeEntrees', 
-							'typeAccroissements', 
-							'typePriseEnCharges', 'priseEnChargeNon', 
-							'typeRealisationTraitements', 'realisationTraitementAucun', 
-							'raisonSuppressions', 
-							'typeDocAfferents', 
-							'aireCulturelles', 
-							'lieuConservations', 
-							'thematiques', 
-							'typeConditionnements', 
-							'typeDocs', 
-							'typeSupports'));
+				'entiteDocs', 
+				'typeFonds', 
+				'typeTraitements', 
+				'typeNumerisations', 
+				'typeInstrRechs', 
+				'typeStatJurids', 
+				'typeEntrees', 
+				'typeAccroissements', 
+				'typePriseEnCharges', 'priseEnChargeNon', 
+				'typeRealisationTraitements', 'realisationTraitementAucun', 
+				'raisonSuppressions', 
+				'typeDocAfferents', 
+				'aireCulturelles', 
+				'lieuConservations', 
+				'thematiques', 
+				'typeConditionnements', 
+				'typeDocs', 
+				'typeSupports'));
         $this->set('_serialize', ['fond']);
 		
     }
@@ -914,6 +913,32 @@ class FondsController extends AppController
 				$query = $this->stat_RepartitionFondsParTypeFonds($this->request->data['entitedoc'], 'ml');
 				break;					
 				
+			case 23 :
+				// Composition par type de traitement
+				$titre = "Fonds traités par le marché de traitement";
+				$abscisse = "Fonds proposés au marché de traitement";
+				$ordonnee = "Nombre total de fonds";
+				$ordonnee2 = "Volumétrie totale en ml";
+				//$typeGraphique = "multipleCas9";
+				$typeGraphique = "multiple";
+				$query = $this->stat_NbTotFondsPriseEnCharges($this->request->data['entitedoc']);
+				$queryTotaux = $this->stat_InfosFonds();
+				$this->set('totaux', $queryTotaux);
+				break;	
+
+                        case 24 :
+                                // Composition par type de traitement
+                                $titre = "Prestation réalisée dans le cadre du marché de traitement";
+                                $abscisse = "Prestation réalisée";
+                                $ordonnee = "Nombre total de fonds";
+                                $ordonnee2 = "Volumétrie totale en ml";
+                                //$typeGraphique = "multipleCas9";
+                                $typeGraphique = "multiple";
+                                $query = $this->stat_NbTotFondsTraitementEnvisageRealise($this->request->data['entitedoc']);
+                                $queryTotaux = $this->stat_InfosFonds();
+                                $this->set('totaux', $queryTotaux);
+                                break;
+				
 			default:
 				$titre = '';
 				$abscisse = '';
@@ -1131,6 +1156,63 @@ class FondsController extends AppController
 				
 		return($maQuery);
     }	
+     /**
+     * stat_NbTotFondsPriseEnCharges method
+     * Cette méthode calcule le nombre de fonds et leur volumétrie par type de prise en charge
+     * @param néant
+     * @return $maQuery qui contient la requête adéquate
+     * @throws nothing
+     */
+    public function stat_NbTotFondsPriseEnCharges($myEntiteDoc) {
+	$maQuery = $this->Fonds->find('all', ['contain' => ['TypePriseEnCharges']]);
+	$maQuery->select([
+                                'count' => $maQuery->func()->count('Fonds.id'),
+                                'somme' => $maQuery->func()->sum('Fonds.nb_ml'),
+                                'libelle' => 'TypePriseEnCharges.type'
+                                ])
+                                ->where(['ind_suppr <> ' => 1,
+                                         'TypePriseEnCharges.type = ' =>  FONDS_TRAITE ,
+                                       ])
+                                ->group('type_prise_en_charge_id')
+                                ->order(['TypePriseEnCharges.type' => 'ASC']);
+
+                // Cas où le graphique doit être générée pour une entité documentaire précise
+                if ($myEntiteDoc != 'all') {
+                        $maQuery->where(['entite_doc_id' => $myEntiteDoc]);
+                }
+
+                return($maQuery);
+    }
+
+     /**
+     * stat_NbTotFondsTraitementEnvisageRealise
+     * Cette méthode calcule le nombre de fonds et leur volumétrie par type de traitement envisagé/réalisé
+     * @param néant
+     * @return $maQuery qui contient la requête adéquate
+     * @throws nothing
+     */
+    public function stat_NbTotFondsTraitementEnvisageRealise($myEntiteDoc) {
+        $maQuery = $this->Fonds->find('all', ['contain' => ['TypeRealisationTraitements', 'TypePriseEnCharges']]);
+        $maQuery->select([
+                                'count' => $maQuery->func()->count('Fonds.id'),
+                                'somme' => $maQuery->func()->sum('Fonds.nb_ml'),
+                                'libelle' => 'TypeRealisationTraitements.type'
+                                ])
+                                ->where(['ind_suppr <> ' => 1,
+                                         'TypeRealisationTraitements.type NOT IN ' =>  [AUCUN_TRAITEMENT_REALISE] ,
+                                         'TypePriseEnCharges.type =' =>  FONDS_TRAITE ,
+                                       ])
+                                ->group('type_realisation_traitement_id')
+                                ->order(['TypeRealisationTraitements.type' => 'ASC']);
+
+                // Cas où le graphique doit être générée pour une entité documentaire précise
+                if ($myEntiteDoc != 'all') {
+                        $maQuery->where(['entite_doc_id' => $myEntiteDoc]);
+                }
+
+                return($maQuery);
+    }
+
 	
 	
 	/**
@@ -1697,11 +1779,11 @@ class FondsController extends AppController
 		return ([$tab_donnees, $tab_couleurs]);
 	}		
 
-	
+
     /**
      * Recherche method
      * Cette méthode effectue une recherche sur les fonds selon les critères renvoyés
-	 * dans la query string
+     * dans la query string
      * @return void
      */
     public function recherche()
@@ -1975,11 +2057,25 @@ class FondsController extends AppController
 					default :
 				}
 				break;
-				
 			case 28 :
 				// Indicateur "Fiche de fonds modifiée"
 				$clauseWhere = "Fonds.ind_maj";
-				
+				break;
+			case 29 :
+				// Indicateur "Prise en charge"
+				$clauseWhere = "Fonds.type_prise_en_charge_id";
+				break;
+			case 30 :
+				// Indicateur "Realisation de traitement envisage"
+				$clauseWhere = "Fonds.type_realisation_traitement_id";
+				break;
+			case 31 :
+				// Indicateur "Stockage cible"
+				$clauseWhere = "Fonds.stockage";
+				break;
+			case 32 :
+				// Indicateur de communicabilité
+				$clauseWhere = "Fonds.communication";
 			default :
 		}
 		
@@ -2115,17 +2211,19 @@ class FondsController extends AppController
 		$this->set ('typeFonds',$this->Fonds->TypeFonds->find('all', ['order' => ['type' => 'ASC']]));
 		$this->set ('typeStatJurids',$this->Fonds->TypeStatJurids->find('all', ['order' => ['type' => 'ASC']]));
 		$this->set ('typeTraitements', $this->Fonds->TypeTraitements->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('typeNumerisations', $this->Fonds->TypeNumerisations->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('typeInstrRechs', $this->Fonds->TypeInstrRechs->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('typeEntrees', $this->Fonds->TypeEntrees->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('typeDocAfferents', $this->Fonds->TypeDocAfferents->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('typeAccroissements', $this->Fonds->TypeAccroissements->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('raisonSuppressions', $this->Fonds->RaisonSuppressions->find('all', ['order' => ['raison' => 'ASC']]));
-        $this->set ('aireCulturelles', $this->Fonds->AireCulturelles->find('all', ['order' => ['intitule' => 'ASC']]));
-        $this->set ('thematiques', $this->Fonds->Thematiques->find('all', ['order' => ['intitule' => 'ASC']]));
-        $this->set ('typeConditionnements', $this->Fonds->TypeConditionnements->find('all', ['order' => ['type' => 'ASC']]));
-        $this->set ('typeDocs', $this->Fonds->TypeDocs->find('all', ['order' => ['type' => 'ASC']]));	
-        $this->set ('typeSupports', $this->Fonds->TypeSupports->find('all', ['order' => ['type' => 'ASC']]));			
+		$this->set ('typeNumerisations', $this->Fonds->TypeNumerisations->find('all', ['order' => ['type' => 'ASC']]));
+		$this->set ('typeInstrRechs', $this->Fonds->TypeInstrRechs->find('all', ['order' => ['type' => 'ASC']]));
+		$this->set ('typeEntrees', $this->Fonds->TypeEntrees->find('all', ['order' => ['type' => 'ASC']]));
+		$this->set ('typeDocAfferents', $this->Fonds->TypeDocAfferents->find('all', ['order' => ['type' => 'ASC']]));
+		$this->set ('typeAccroissements', $this->Fonds->TypeAccroissements->find('all', ['order' => ['type' => 'ASC']]));
+		$this->set ('raisonSuppressions', $this->Fonds->RaisonSuppressions->find('all', ['order' => ['raison' => 'ASC']]));
+		$this->set ('aireCulturelles', $this->Fonds->AireCulturelles->find('all', ['order' => ['intitule' => 'ASC']]));
+		$this->set ('thematiques', $this->Fonds->Thematiques->find('all', ['order' => ['intitule' => 'ASC']]));
+		$this->set ('typeConditionnements', $this->Fonds->TypeConditionnements->find('all', ['order' => ['type' => 'ASC']]));
+		$this->set ('typeDocs', $this->Fonds->TypeDocs->find('all', ['order' => ['type' => 'ASC']]));	
+		$this->set ('typeSupports', $this->Fonds->TypeSupports->find('all', ['order' => ['type' => 'ASC']]));	
+		$this->set ('typePriseEnCharges', $this->Fonds->TypePriseEnCharges->find('all', ['order' => ['type' => 'ASC']]));	
+		$this->set ('typeRealisationTraitements', $this->Fonds->TypeRealisationTraitements->find('all', ['order' => ['type' => 'ASC']]));	
 		$this->set ('rappelCritere', $critere);
 		$this->set ('rappelOperande', $operande);
 		$this->set ('rappelValeur', $valeur);
@@ -2138,7 +2236,7 @@ class FondsController extends AppController
 
     /**
      * volumetrieTotale method
-	 * Calcul des volumétries totales
+     * Calcul des volumétries totales
      * @return requête de calcul des volumetries
      */	
     public function volumetrieTotale() {
@@ -2156,7 +2254,7 @@ class FondsController extends AppController
 	}	 
     /**
      * generatepdf method
-	 * Gestion de la production des rapports sur les fonds
+     * Gestion de la production des rapports sur les fonds
      * @return void
      */	
     public function generatepdf() {
@@ -2181,10 +2279,10 @@ class FondsController extends AppController
 		switch ($mode) {
 			// Liste des fonds : cas "vos fonds" (user), cas "autres fonds" (nuser)
 			// C'est l'état accessible par l'écran des listes de fonds
-            // Pour le cas "supprime", c'est un sous-cas du profil CC avec tous les fonds
+			// Pour le cas "supprime", c'est un sous-cas du profil CC avec tous les fonds
 			// --------------------------------------------------------------------
 			case "supprime":
-            case "user":
+			case "user":
 			case "nuser":
 				///////
 				$modele = 'pdf/listefonds';
@@ -2207,22 +2305,20 @@ class FondsController extends AppController
 						// On gère le profil de consultation comme le CC
 					case PROFIL_CC:
 						if ($mode != "supprime") {
-                        $query = $this->Fonds->find('all', [
-								'contain' => [ 'EntiteDocs' => ['Etablissements'], 'TypeFonds'],
-								'order' => ['Fonds.nom' => 'asc'],
-								'conditions' => ['ind_suppr != ' => 1]
-								
-							]);
-                        }
-                        else {
-                            $title = "Liste des fonds supprimés " ;
-                            $query = $this->Fonds->find('all', [
+                        					$query = $this->Fonds->find('all', [
+									'contain' => [ 'EntiteDocs' => ['Etablissements'], 'TypeFonds'],
+									'order' => ['Fonds.nom' => 'asc'],
+									'conditions' => ['ind_suppr != ' => 1]
+								]);
+                        			}
+                        			else {
+                            				$title = "Liste des fonds supprimés " ;
+                            				$query = $this->Fonds->find('all', [
 								'contain' => [ 'EntiteDocs' => ['Etablissements'], 'TypeFonds'],
 								'order' => ['Fonds.nom' => 'asc'],
 								'conditions' => ['ind_suppr = ' => 1]
-								
-                                ]);                            
-                        }
+                                				]);                            
+                        			}
 						break;
 					case PROFIL_CA:			
 						if ($mode == "user") {
@@ -2237,7 +2333,6 @@ class FondsController extends AppController
 						else {
 							$query = $this->Fonds->find('all', [
 									'conditions' => [
-										//'entite_doc_id <>' => $monEntiteDoc,
 										'ind_suppr != ' => 1],
 									'contain' => [ 'EntiteDocs' => ['Etablissements'], 'TypeFonds'],
 									'order' => ['Fonds.nom' => 'asc']
@@ -2260,7 +2355,7 @@ class FondsController extends AppController
 				break;
 				
 			// Fiche de fonds : c'est l'état accessible depuis la page de
-            // consultation de fonds.
+            		// consultation de fonds.
 			// --------------------------------------------------------------------			
 			case "fiche":
 				$modele = 'pdf/fichefonds';
@@ -2270,8 +2365,9 @@ class FondsController extends AppController
 				$id = $this->request->query('id');	
 				$query = $this->Fonds->get($id, [
 						'contain' => ['EntiteDocs', 'TypeFonds', 'TypeTraitements', 'TypeNumerisations', 'TypeInstrRechs', 'TypeStatJurids', 'TypeEntrees', 
-										'TypeAccroissements', 'RaisonSuppressions', 'TypeDocAfferents', 'AireCulturelles', 'LieuConservations', 'Thematiques', 
-										'TypeConditionnements', 'TypeDocs', 'TypeSupports', 'TypePriseEnCharges', 'TypeRealisationTraitements', 'Adresses']
+								'TypeAccroissements', 'RaisonSuppressions', 'TypeDocAfferents', 'AireCulturelles', 'LieuConservations', 'Thematiques', 
+								'TypeConditionnements', 'TypeDocs', 'TypeSupports', 'TypePriseEnCharges', 'TypeRealisationTraitements', 'Adresses',
+								'TypePriseEnCharges', 'TypeRealisationTraitements']
 					]);		
 				$view->set('profil',$monTypeUser);					
 				$view->set('fond',$query);
@@ -2296,15 +2392,15 @@ class FondsController extends AppController
 						$filename = "ListeDetailleeFonds".$monIdUser.'-'.mt_rand();
 						$query = $this->Fonds->find('all', [
 										'conditions' => ['ind_suppr != ' => 1, 
-														 'entite_doc_id ' => $monEntiteDoc
-														],
+												 'entite_doc_id ' => $monEntiteDoc
+												],
 										'contain' => [ 'EntiteDocs' => ['Etablissements'], 'TypeFonds', 'TypeStatJurids' ],
 										'order' => [ 
-													 'Etablissements.nom' => 'asc',
-													 'TypeFonds.num_seq' => 'asc',
-													 'EntiteDocs.nom' => 'asc',
-													 'Fonds.nom' => 'asc'
-													]
+											 'Etablissements.nom' => 'asc',
+											 'TypeFonds.num_seq' => 'asc',
+											 'EntiteDocs.nom' => 'asc',
+											 'Fonds.nom' => 'asc'
+											]
 										]);							
 						$view->set('fonds',$query);
 						$view->set('_serialize', ['fonds']);
@@ -2316,11 +2412,11 @@ class FondsController extends AppController
 										'conditions' => ['ind_suppr != ' => 1],
 										'contain' => [ 'EntiteDocs' => ['Etablissements'], 'TypeFonds', 'TypeStatJurids'],
 										'order' => [	
-														'Etablissements.nom' => 'asc',
-														'TypeFonds.num_seq' => 'asc',
-														'EntiteDocs.nom' => 'asc',
-														'Fonds.nom' => 'asc'
-													]
+											'Etablissements.nom' => 'asc',
+											'TypeFonds.num_seq' => 'asc',
+											'EntiteDocs.nom' => 'asc',
+											'Fonds.nom' => 'asc'
+											]
 										]);							
 						$view->set('fonds',$query);
 						$view->set('_serialize', ['fonds']);
@@ -2337,53 +2433,127 @@ class FondsController extends AppController
 				$title = "Volumétrie (ml) par lieux de conservation, établissements et entités documentaires" ;
 				$view->set('profil',$monTypeUser);	
 				$filename = "VolumetrieParLieuxEtablissementsEntites".$monIdUser.'-'.mt_rand();
-				/*$query = $this->Fonds->find();
-				$query->select([
-								'ville' => 'LieuConservations.adresse_ville',
-								'nom' => 'LieuConservations.nom',
-								'adresse1' => 'LieuConservations.nom',
-								'adresse2' => 'LieuConservations.adresse_2',
-								'adresse3' => 'LieuConservations.adresse_3',
-								'adresseCP' => 'LieuConservations.adresse_cp',
-								'adressePays' => 'LieuConservations.adresse_pays',
-								'etablissement' => 'Etablissements.nom',
-								'codeEntite' => 'EntiteDocs.code',
-								'volumetrie' => $query->func()->sum('Fonds.nb_ml')
-								]);
-				$query->where(['ind_suppr != ' => 1]);
-				$query->contain([ 'EntiteDocs' => ['Etablissements',  'LieuConservations']] );
-				$query->order([ 'LieuConservations.adresse_cp' => 'asc',
-								'LieuConservations.adresse_ville' => 'asc',
-								'LieuConservations.nom' => 'asc',
-								'LieuConservations.adresse_1' => 'asc',
-								'Etablissements.nom' => 'asc',
-								'TypeFonds.num_seq' => 'asc',
-								'EntiteDocs.code' => 'asc'
-								]);
-				$query->group([ 'LieuConservations.adresse_cp',
-								'LieuConservations.adresse_ville',
-								'LieuConservations.nom',
-								'LieuConservations.adresse_1',
-								'Etablissements.nom',
-								'TypeFonds.num_seq',
-								'EntiteDocs.code'
-								]);*/
-		
-					$conn = ConnectionManager::get('default');
-					$requete = "select	LieuConservations.adresse_ville as 'ville', LieuConservations.nom as 'nomLieu', 
-						LieuConservations.adresse_1 as 'adresse1', LieuConservations.adresse_2 as 'adresse2', LieuConservations.adresse_3 as 'adresse3', 
-						LieuConservations.adresse_cp as 'cp', LieuConservations.adresse_pays  as 'pays',
-						Etablissements.code  as 'etablissement',EntiteDocs.code as 'bib', sum(Fonds.nb_ml) as 'volume'
-						from fonds Fonds, entite_docs EntiteDocs, etablissements Etablissements, fonds_lieu_conservations flc, lieu_conservations LieuConservations
-						where	Fonds.ind_suppr <> 1 and Fonds.entite_doc_id = EntiteDocs.id and Fonds.id = flc.fond_id and LieuConservations.id = flc.lieu_conservation_id and EntiteDocs.etablissement_id = Etablissements.id
-						group by LieuConservations.id, Etablissements.id, EntiteDocs.id
-                        order by cp, ville, adresse1, etablissement, bib" ;
+				$conn = ConnectionManager::get('default');
+				$requete = "select LieuConservations.adresse_ville as 'ville', LieuConservations.nom as 'nomLieu', 
+					LieuConservations.adresse_1 as 'adresse1', LieuConservations.adresse_2 as 'adresse2', LieuConservations.adresse_3 as 'adresse3', 
+					LieuConservations.adresse_cp as 'cp', LieuConservations.adresse_pays  as 'pays',
+					Etablissements.code  as 'etablissement',EntiteDocs.code as 'bib', sum(Fonds.nb_ml) as 'volume'
+					from fonds Fonds, entite_docs EntiteDocs, etablissements Etablissements, fonds_lieu_conservations flc, lieu_conservations LieuConservations
+					where	Fonds.ind_suppr <> 1 and Fonds.entite_doc_id = EntiteDocs.id and Fonds.id = flc.fond_id and LieuConservations.id = flc.lieu_conservation_id and EntiteDocs.etablissement_id = Etablissements.id
+					group by LieuConservations.id, Etablissements.id, EntiteDocs.id
+					order by cp, ville, adresse1, etablissement, bib" ;
 					
-					$query = $conn->execute($requete);
-		
-					$view->set('fonds',$query);
-					$view->set('_serialize', ['fonds']);
+				$query = $conn->execute($requete);
+	
+				$view->set('fonds',$query);
+				$view->set('_serialize', ['fonds']);
 				break;				
+                        // Rapport de liste des fonds par entité documentaire et par lieu de
+			// stockage cible
+                        // --------------------------------------------------------------------
+                        case "ListeFondsParEntiteDocsEtLieuxStockageCible":
+                                $modele = 'pdf/listeFondsEntiteStockage';
+                                $template = 'Fonds/pdf/generatepdf';
+                                $title = "Liste détaillées des fonds par entité documentaire et par lieu de stockage cible" ;
+
+                                $view->set('profil',$monTypeUser);
+
+                                switch ($monTypeUser) {
+                                        case PROFIL_CA:
+                                                $filename = "ListeFondsEntiteStockage".$monIdUser.'-'.mt_rand();
+                                                $query = $this->Fonds->find('all', [
+                                                                                'conditions' => ['ind_suppr != ' => 1,
+                                                                                                 'entite_doc_id ' => $monEntiteDoc
+                                                                                                ],
+                                                                                'contain' => [ 'EntiteDocs' => ['Etablissements'] ],
+                                                                                'order' => [
+                                                                                         'Etablissements.nom' => 'asc',
+                                                                                         'EntiteDocs.nom' => 'asc',
+											 'Fonds.stockage' => 'asc',
+                                                                                         'Fonds.nom' => 'asc'
+                                                                                        ]
+                                                                                ]);
+                                                $view->set('fonds',$query);
+                                                $view->set('_serialize', ['fonds']);
+                                                break;
+                                        case PROFIL_CO:
+                                        case PROFIL_CC:
+                                                $filename = "ListeFondsEntiteStockage".$monIdUser.'-'.mt_rand();
+                                                $query = $this->Fonds->find('all', [
+                                                                                'conditions' => ['ind_suppr != ' => 1],
+                                                                                'contain' => [ 'EntiteDocs' => ['Etablissements'] ],
+                                                                                'order' => [
+                                                                                        'Etablissements.nom' => 'asc',
+                                                                                        'EntiteDocs.nom' => 'asc',
+                                                                                        'Fonds.stockage' => 'asc',
+                                                                                        'Fonds.nom' => 'asc'
+                                                                                        ]
+                                                                                ]);
+                                                $view->set('fonds',$query);
+                                                $view->set('_serialize', ['fonds']);
+                                                break;
+                                        default:
+                                                break;
+                                }
+                                break;
+                        // Rapport détaillée du contenu des magasins
+                        // --------------------------------------------------------------------
+                        case "ListeMagasin":
+                                $modele = 'pdf/listeMagasins';
+                                $template = 'Fonds/pdf/generatepdf';
+                                $title = "Inventaire du contenu des magasins";
+
+                                $view->set('profil',$monTypeUser);
+
+                                switch ($monTypeUser) {
+                                        case PROFIL_CA:
+                                                $filename = "ListeMagasins".$monIdUser.'-'.mt_rand();
+                                                $query = $this->Fonds->Adresses->find('all', [
+                                                                                'conditions' => ['ind_suppr != ' => 1,
+                                                                                                 'entite_doc_id ' => $monEntiteDoc,
+                                                                                                 'Adresses.magasin <> ' => ''
+                                                                                                ],
+                                                                                'contain' => ['Fonds' => ['EntiteDocs' => function ($q) {return $q->select(['fondnom' => 'Fonds.nom', 'fondml' => 'Fonds.nb_ml', 'entite' => 'EntiteDocs.code']);}]
+                                                                                             ],
+
+                                                                                'order' => [
+                                                                                         'Adresses.magasin' => 'asc',
+                                                                                         'Adresses.epi_deb' => 'asc',
+                                                                                         'Adresses.epi_fin' => 'asc',
+                                                                                         'Adresses.travee_deb' => 'asc',
+                                                                                         'Adresses.travee_fin' => 'asc',
+                                                                                         'Fonds.nom' => 'asc'
+                                                                                        ]
+                                                                                ]);
+                                                $view->set('fonds',$query);
+                                                $view->set('_serialize', ['fonds']);
+                                                break;
+                                        case PROFIL_CO:
+                                        case PROFIL_CC:
+                                                $filename = "ListeMagasins".$monIdUser.'-'.mt_rand();
+                                                $query = $this->Fonds->Adresses->find('all', [
+                                                                                'conditions' => ['ind_suppr != ' => 1,
+                                                                                                 'Adresses.magasin <> ' => '' 
+                                                                                                ],
+                                                                                'contain' => ['Fonds' => ['EntiteDocs' => function ($q) {return $q->select(['fondnom' => 'Fonds.nom', 'fondml' => 'Fonds.nb_ml', 'entite' => 'EntiteDocs.code']);}]
+                                                                                             ],
+                                                                                'order' => [
+                                                                                         'Adresses.magasin' => 'asc',
+                                                                                         'Adresses.epi_deb' => 'asc',
+                                                                                         'Adresses.epi_fin' => 'asc',
+                                                                                         'Adresses.travee_deb' => 'asc',
+                                                                                         'Adresses.travee_fin' => 'asc',
+                                                                                         'Fonds.nom' => 'asc'
+                                                                                        ]
+                                                                                ]);
+                                                $view->set('adresses',$query);
+                                                $view->set('_serialize', ['adresses']);
+                                                break;
+                                        default:
+                                                break;
+                                }
+                                break;
+
 			default:
 				break;
 		}
@@ -2391,7 +2561,7 @@ class FondsController extends AppController
 		// Positionnement des variables communes et retour.
 		$this->set('filename',$filename);
 		$this->set('title',$title);
-        $view->set(compact('title', 'filename'));
+		$view->set(compact('title', 'filename'));
 		$view->render($template, $modele );
 		$this->viewBuilder()->autoLayout(false);
     }	
@@ -2577,32 +2747,32 @@ class FondsController extends AppController
 
 	/**
     * GenerateRapports method
-	* Affichage et gestion de la page de génération des rapports
-	* La production du rapport proprement dite sera gérer dans la
-	* méthode generatepdf
+    * Affichage et gestion de la page de génération des rapports
+    * La production du rapport proprement dite sera gérer dans la
+    * méthode generatepdf
     * @return void
     */	
     public function generaterapports()
     {
-		$entiteDocs=$this->Fonds->EntiteDocs->find('list', ['limit' => 200]);
-		$this->set('entiteDocs',$entiteDocs);
-	}
+	$entiteDocs=$this->Fonds->EntiteDocs->find('list', ['limit' => 200]);
+	$this->set('entiteDocs',$entiteDocs);
+    }
 	
-	/**
+    /**
     * implantation method
     * @return void
     */	
     public function implantation()
     {
-		$adresses = $this->Fonds->Adresses->find('all');
-		$sommeMagasins = $this->Fonds->Adresses->find();
-		$sommeMagasins->select([
-			'magasin',
-			'sum' => $sommeMagasins->func()->sum('volume')]);
-		$sommeMagasins->group(['magasin']);
-												
+        $fond = $this->Fonds->find('all', [
+            'contain' => [
+                                'EntiteDocs',
+                                'Adresses',
+                                'TypeSupports' => function($q) {return $q->order(['TypeSupports.type' => 'ASC']);}
+                        ]
+        ]);
+        $this->set('fond', $fond);
+        $this->set('_serialize', ['fond']);
 
-		$this->set('adresses',$adresses);
-		$this->set('sommeMagasins',$sommeMagasins);		
-	}	
+    }	
 }

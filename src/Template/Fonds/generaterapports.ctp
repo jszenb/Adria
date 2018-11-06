@@ -16,11 +16,14 @@
 			if ($typeUserEnSession == PROFIL_CC) {
 				$options = [
 					'ListeDetailleeFonds' => 'Liste détaillée des fonds rejoignant le GED',
-					'VolumetrieParLieuxEtablissementsEntites' => 'Volumétrie par lieux de conservation, établissements et entités documentaires'				
+					'VolumetrieParLieuxEtablissementsEntites' => 'Volumétrie par lieux de conservation, établissements et entités documentaires',
+					'ListeFondsParEntiteDocsEtLieuxStockageCible' => 'Liste des fonds par entité documentaire et par lieu de stockage cible',
+					'ListeMagasin' => 'Implantation en magasins'
 				];
 			} else {
 				$options = [
-					'ListeDetailleeFonds' => 'Liste détaillée des fonds rejoignant le GED'
+					'ListeDetailleeFonds' => 'Liste détaillée des fonds rejoignant le GED',
+					'ListeFondsParEntiteDocsEtLieuxStockageCible' => 'Liste des fonds par entité documentaire et par lieu de stockage cible'
 				];
 			}
 			

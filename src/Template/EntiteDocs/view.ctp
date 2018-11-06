@@ -138,11 +138,16 @@
 				$totalGo = $totalGo + (float)$fonds->nb_go;
 			?>
             <tr>
-                <td><?= h($fonds->nom) ?></td>
+		<td>
+                   <?php $dateAffichee = '' ;
+                   empty($fonds->dt_der_modif) ? $dateAffichee = $fonds->dt_creation->nice('Europe/Paris', 'fr-FR') : $dateAffichee = $fonds->dt_der_modif->nice('Europe/Paris', 'fr-FR') ; 
+                   ?>
+                  <?= h($fonds->nom) ?><?= $fonds->ind_maj ? '&nbsp;&#x2714; (' .  $dateAffichee . ')' : '' ?>
+                </td>
                 <td>
-					<?= h($fonds->type_fond->type) ?>
-				</td>
-				<td><?= $fonds->ind_nb_ml_inconnu ? h('inconnue') : $this->Number->format($fonds->nb_ml) ?></td>
+                   <?= h($fonds->type_fond->type) ?>
+                </td>
+                <td><?= $fonds->ind_nb_ml_inconnu ? h('inconnue') : $this->Number->format($fonds->nb_ml) ?></td>
                 <td><?= $fonds->ind_nb_go_inconnu ? h('inconnue') : $this->Number->format($fonds->nb_go) ?></td>
                 <td class="actions">
                     <?= $this->Html->link(__('Consulter'), ['controller' => 'Fonds', 'action' => 'view', $fonds->id]) ?>

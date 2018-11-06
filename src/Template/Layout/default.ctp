@@ -60,7 +60,7 @@ $cakeDescription = 'Adria - Campus Condorcet';
 					'http://www.campus-condorcet.fr',
 					['target' => '_blank', 'escapeTitle' => false]); 
 			?>
-
+-----------------------------DEVELOPPEMENT !-----------------------
              <ul class="right"> 
 				<?= $this->Html->link('Guide de l\'utilisateur consultation','/files/guides/CC_GED_ARC_ADRIA_Guide_consultation_vf.pdf', ['target' => '_blank', 'escapeTitle' => false, 'class' => 'button' ]); ?>
 				<?= $this->Html->link('Guide de l\'utilisateur référent archives','/files/guides/CC_GED_ARC_ADRIA_Guide_referents_vf.pdf', ['target' => '_blank', 'escapeTitle' => false, 'class' => 'button' ]); ?>

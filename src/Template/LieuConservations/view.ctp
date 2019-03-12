@@ -129,7 +129,10 @@
 				$totalGo = $totalGo + (float)$fonds->nb_go;
 			?>
             <tr>
-                <td><?= h($fonds->nom) ?><?= $fonds->ind_maj ? '&nbsp;&#x2714; (' : '' ?><?= $fonds->ind_maj ?  h($fonds->dt_der_modif->nice('Europe/Paris', 'fr-FR')) . ')' : '' ?></td>
+                <?php // empty($fond->dt_der_modif) ? $dateAffichee = $fond->dt_creation->nice('Europe/Paris', 'fr-FR') : $dateAffichee = $fond->dt_der_modif->nice('Europe/Paris', 'fr-FR') ?>
+                <?php empty($fonds->dt_der_modif) ? $dateAffichee = $fonds->dt_creation : $dateAffichee = $fonds->dt_der_modif ?>
+                <td><?= h($fonds->nom) ?><?= $fonds->ind_maj ? '&nbsp;&#x2714; (' : '' ?><?= $fonds->ind_maj ?  $dateAffichee->nice('Europe/Paris', 'fr-FR') . ')' : '' ?></td>
+
                 <td>
 					<?= h($fonds->type_fond->type) 
 					/*foreach ($type_fonds as $type_fond): 

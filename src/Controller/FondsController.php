@@ -2496,6 +2496,61 @@ class FondsController extends AppController
                                                 break;
                                 }
                                 break;
+                        // Rapport de liste des fonds par entité documentaire et par lieu de
+                        // stockage cible HORS OPTION SUR  LE LIEU D'ORIGINE : pour l'AMO
+                        // déménagement
+                        // --------------------------------------------------------------------
+                        case "ListeFondsParEntiteDocsEtLieuxStockageCibleAMO":
+                        case "ListeFondsParLieuxStockageCibleEtEntiteDocsAMO":
+                                $modele = 'pdf/listeFondsEntiteStockageAMO';
+                                $template = 'Fonds/pdf/generatepdf';
+                                if ($mode == "ListeFondsParEntiteDocsEtLieuxStockageCibleAMO") {
+                                   $title = "Liste détaillées des fonds par entités documentaires et par lieux de stockage cible" ;
+                                   $this->set('mode', "ES"); // entite / stockage
+                                } else {
+                                   $title = "Liste détaillées des fonds par lieux de stockage cible et par entités documentaire" ;
+                                   $this->set('mode', "SE"); // stockage / entite
+                                }
+                                $view->set('profil',$monTypeUser);
+                                $filename = "ListeFondsEntiteStockageAMO".$monIdUser.'-'.mt_rand();
+                                switch ($monTypeUser) {
+                                        case PROFIL_CA:
+                                                $query = $this->Fonds->find('all', [
+                                                                                'conditions' => ['ind_suppr != ' => 1,
+                                                                                                 'stockage != ' => 0, // on exclut le stockage en site d'origine
+                                                                                                 'entite_doc_id ' => $monEntiteDoc
+                                                                                                ],
+                                                                                'contain' => [ 'EntiteDocs' => ['Etablissements'] ]
+                                                                                ]);
+                                        case PROFIL_CO:
+                                        case PROFIL_CC:
+                                                $query = $this->Fonds->find('all', [
+                                                                                'conditions' => ['ind_suppr != ' => 1,
+                                                                                                 'stockage != ' => 0 // on exclut le stockage en site d'origine
+                                                                                                ], 
+                                                                                'contain' => [ 'EntiteDocs' => ['Etablissements'] ]
+                                                                                ]);
+                                        default:
+                                                break;
+                                }
+
+                                if ($mode == "ListeFondsParEntiteDocsEtLieuxStockageCibleAMO") {
+                                    $query->order([ 'Etablissements.nom' => 'asc',
+                                                    'EntiteDocs.nom' => 'asc',
+                                                    'Fonds.stockage' => 'asc',
+                                                    'Fonds.nom' => 'asc'
+                                                  ]);
+                                } else {
+                                    $query->order([ 'Etablissements.nom' => 'asc',
+                                                    'Fonds.stockage' => 'asc',
+                                                    'EntiteDocs.nom' => 'asc',
+                                                    'Fonds.nom' => 'asc'
+                                                  ]);
+                                }
+                                $view->set('fonds',$query);
+                                $view->set('_serialize', ['fonds']);
+                                break;
+
                         // Rapport détaillée du contenu des magasins
                         // --------------------------------------------------------------------
                         case "ListeMagasin":

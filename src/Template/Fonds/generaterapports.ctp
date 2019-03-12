@@ -18,6 +18,8 @@
 					'ListeDetailleeFonds' => 'Liste détaillée des fonds rejoignant le GED',
 					'VolumetrieParLieuxEtablissementsEntites' => 'Volumétrie par lieux de conservation, établissements et entités documentaires',
 					'ListeFondsParEntiteDocsEtLieuxStockageCible' => 'Liste des fonds par entité documentaire et par lieu de stockage cible',
+					'ListeFondsParEntiteDocsEtLieuxStockageCibleAMO' => 'Liste des fonds par entité documentaire et par lieu de stockage cible (site d\'origine exclu)',
+					'ListeFondsParLieuxStockageCibleEtEntiteDocsAMO' => 'Liste des fonds par stockage cible (site d\'origine exclu) et par entité documentaire',
 					'ListeMagasin' => 'Implantation en magasins'
 				];
 			} else {

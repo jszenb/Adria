@@ -2496,23 +2496,14 @@ class FondsController extends AppController
                                                 break;
                                 }
                                 break;
-                        // Rapport de liste des fonds par entité documentaire et par lieu de
-                        // stockage cible HORS OPTION SUR  LE LIEU D'ORIGINE : pour l'AMO
-                        // déménagement
+                        // Rapport de liste des fonds par site de départ
                         // --------------------------------------------------------------------
-                        case "ListeFondsParEntiteDocsEtLieuxStockageCibleAMO":
-                        case "ListeFondsParLieuxStockageCibleEtEntiteDocsAMO":
-                                $modele = 'pdf/listeFondsEntiteStockageAMO';
+                        case "ListeFondsParSiteDepart":
+                                $modele = 'pdf/listeFondsParSiteDepart';
                                 $template = 'Fonds/pdf/generatepdf';
-                                if ($mode == "ListeFondsParEntiteDocsEtLieuxStockageCibleAMO") {
-                                   $title = "Liste détaillées des fonds par entités documentaires et par lieux de stockage cible" ;
-                                   $this->set('mode', "ES"); // entite / stockage
-                                } else {
-                                   $title = "Liste détaillées des fonds par lieux de stockage cible et par entités documentaire" ;
-                                   $this->set('mode', "SE"); // stockage / entite
-                                }
+                                $title = "Liste des fonds par site de départ";
                                 $view->set('profil',$monTypeUser);
-                                $filename = "ListeFondsEntiteStockageAMO".$monIdUser.'-'.mt_rand();
+                                $filename = "ListeFondsParSiteDepart".$monIdUser.'-'.mt_rand();
                                 switch ($monTypeUser) {
                                         case PROFIL_CA:
                                                 $query = $this->Fonds->find('all', [
@@ -2533,20 +2524,11 @@ class FondsController extends AppController
                                         default:
                                                 break;
                                 }
-
-                                if ($mode == "ListeFondsParEntiteDocsEtLieuxStockageCibleAMO") {
-                                    $query->order([ 'Etablissements.nom' => 'asc',
-                                                    'EntiteDocs.nom' => 'asc',
-                                                    'Fonds.stockage' => 'asc',
-                                                    'Fonds.nom' => 'asc'
-                                                  ]);
-                                } else {
-                                    $query->order([ 'Etablissements.nom' => 'asc',
-                                                    'Fonds.stockage' => 'asc',
-                                                    'EntiteDocs.nom' => 'asc',
-                                                    'Fonds.nom' => 'asc'
-                                                  ]);
-                                }
+                                $query->order([ 'Etablissements.nom' => 'asc',
+                                                'EntiteDocs.nom' => 'asc',
+                                                'Fonds.stockage' => 'asc',
+                                                'Fonds.nom' => 'asc'
+                                              ]);
                                 $view->set('fonds',$query);
                                 $view->set('_serialize', ['fonds']);
                                 break;

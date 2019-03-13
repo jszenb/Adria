@@ -18,14 +18,14 @@
 					'ListeDetailleeFonds' => 'Liste détaillée des fonds rejoignant le GED',
 					'VolumetrieParLieuxEtablissementsEntites' => 'Volumétrie par lieux de conservation, établissements et entités documentaires',
 					'ListeFondsParEntiteDocsEtLieuxStockageCible' => 'Liste des fonds par entité documentaire et par lieu de stockage cible',
-					'ListeFondsParEntiteDocsEtLieuxStockageCibleAMO' => 'Liste des fonds par entité documentaire et par lieu de stockage cible (site d\'origine exclu)',
-					'ListeFondsParLieuxStockageCibleEtEntiteDocsAMO' => 'Liste des fonds par stockage cible (site d\'origine exclu) et par entité documentaire',
+					'ListeFondsParSiteDepart' => 'Liste des fonds par site de départ',
 					'ListeMagasin' => 'Implantation en magasins'
 				];
 			} else {
 				$options = [
 					'ListeDetailleeFonds' => 'Liste détaillée des fonds rejoignant le GED',
-					'ListeFondsParEntiteDocsEtLieuxStockageCible' => 'Liste des fonds par entité documentaire et par lieu de stockage cible'
+					'ListeFondsParEntiteDocsEtLieuxStockageCible' => 'Liste des fonds par entité documentaire et par lieu de stockage cible',
+					'ListeFondsParSiteDepart' => 'Liste des fonds par site de départ'
 				];
 			}
 			

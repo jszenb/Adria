@@ -51,6 +51,9 @@
 					</td>
 					<td class="recherche" width="20%">
 						<?php echo $this->Form->button('Générer', ['type' => 'button', 'id' => 'subButton', 'onclick'=>"javascript:$('#rapport').click();"]) ; ?>
+						<?php if ( ($typeUserEnSession == PROFIL_CC) || ($typeUserEnSession == PROFIL_CA && $typeAffichage == "user") ) {
+							echo $this->Html->link('Exporter la liste', array('controller' => 'Fonds', 'action' => 'generateExportParSiteDepart'), ['id' => 'linkCSV']);
+						} ?> 
 					</td>
 				</tr>
 				<!--
@@ -97,6 +100,7 @@ $(document).ready(function() {
 	
 	$('#rapport').hide();
 	$('#subButton').hide();
+	$('#linkCSV').hide();
 	
 	if (entDoc != '') {
 		$('#entitedoc option[value='+entDoc+']').prop('selected', true);
@@ -105,9 +109,6 @@ $(document).ready(function() {
 	
 });
 function rapportChange() {
-
-	
-	// Pour les graphiques 9 à 17, on peut sélectionner une entité documentaire :
 	switch($('#typerapport').val()) {	
 		case '':		
 			$('#entitedoc option[value=""]').prop('selected', true);
@@ -116,13 +117,23 @@ function rapportChange() {
 			$('#entitedoc').css('border-color','red');	
 			$('#rapport').hide();	
 			$('#subButton').hide();			
+			$('#linkCSV').hide();			
 			break;
+		case 'ListeFondsParSiteDepart':
+                        $('#entitedoc option[value=""]').prop('selected', true);
+                        $('#entitedoc').hide();
+                        urlTemp = $('#rapport').attr('href').split('?');
+                        $('#rapport').attr('href',urlTemp[0]+'?mode='+$('#typerapport').val() );
+                        $('#subButton').show();
+                        $('#linkCSV').show();
+                        break;
 		default:
 			$('#entitedoc option[value=""]').prop('selected', true);
 			$('#entitedoc').hide();
 			urlTemp = $('#rapport').attr('href').split('?');
 			$('#rapport').attr('href',urlTemp[0]+'?mode='+$('#typerapport').val() );
 			$('#subButton').show();
+                        $('#linkCSV').hide();
 	}
 
 }

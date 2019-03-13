@@ -2603,18 +2603,82 @@ class FondsController extends AppController
 		$this->viewBuilder()->autoLayout(false);
     }	
 	
-	/**
+    /**
+    * generateExportParSiteDepart
+    *   Cette méthode sert pour un export CSV en vue du déménagement
+    *   et est le pendant CSV de l'état ListeFondsParSiteDepart
+    * @return void
+    */
+    public function generateExportParSiteDepart() {
+       $monUser =  $this->request->session()->read('Auth');
+       $monEntiteDoc = $monUser['User']['entite_doc_id'];
+       $monTypeUser = $monUser['User']['type_user_id'];
+       $mode = $this->request->query('mode');
+
+       switch ($monTypeUser) {
+              case PROFIL_CA:
+                   $fonds = $this->Fonds->find('all', [
+                                                       'conditions' => ['ind_suppr != ' => 1,
+                                                                        'stockage != ' => 0, // on exclut le stockage en site d'origine
+                                                                        'entite_doc_id ' => $monEntiteDoc
+                                                                       ],
+                                                       'contain' => [ 'EntiteDocs.Etablissements' => function ($q) {return $q->select([
+                                                                                                                                        'etabcode' => 'Etablissements.code',
+                                                                                                                                        'entcode' => 'EntiteDocs.code'
+                                                                                                                                       ]);
+                                                                                                                   }
+                                                                    ]
+                                                      ]);
+              case PROFIL_CO:
+              case PROFIL_CC:
+                   $fonds = $this->Fonds->find('all', [
+                                                       'conditions' => ['ind_suppr != ' => 1,
+                                                                        'stockage != ' => 0 // on exclut le stockage en site d'origine
+                                                                       ],
+                                                       'contain' => [ 'EntiteDocs.Etablissements' => function ($q) {return $q->select([
+                                                                                                                                        'etabcode' => 'Etablissements.code',
+                                                                                                                                        'entcode' => 'EntiteDocs.code'
+                                                                                                                                       ]);
+                                                                                                                   }
+                                                                    ]
+                                                      ]);
+              default:
+                   break;
+       }
+       $fonds->order([ 'etabcode' => 'asc',
+                       'entcode' => 'asc',
+                       'Fonds.stockage' => 'asc',
+                       'Fonds.nom' => 'asc'
+                     ]);
+       $_serialize = 'fonds';
+       $_header = ['Etablissement', 'Entité documentaire', 'Cote', 'Nom du fonds', 'Mètres linéaires'];
+       $_extract = ['etabcode', 'entcode', 'cote', 'nom', 'nb_ml'];
+
+       $_delimiter = chr(9); //tabulation en séparateur
+       $_enclosure = '';
+       $_newline = "\r\n";
+       $_eol = "\r\n";
+       $_null = '';
+
+       $filename = "exportListeFondsParSiteDepart".'-'.mt_rand().'.txt';
+       $this->response->download($filename);
+       $this->viewClass = 'CsvView.Csv';
+
+       $this->set(compact('fonds', '_serialize', '_delimiter', '_enclosure', '_newline', '_eol','_header', '_extract', '_null'));
+       $this->set('_serialize', array('fonds'));
+    }
+    /**
     * generatecsv method
-	* Gestion de la production des rapports sur les fonds
+	* Gestion de la production des export CSV sur les fonds
     * @return void
     */	
     public function generatecsv() {
-		$monUser = $this->request->session()->read('Auth');
-		$monEntiteDoc = $monUser['User']['entite_doc_id'];
-		$monTypeUser = $monUser['User']['type_user_id'];
-        $mode = $this->request->query('mode');
+	$monUser = $this->request->session()->read('Auth');
+	$monEntiteDoc = $monUser['User']['entite_doc_id'];
+	$monTypeUser = $monUser['User']['type_user_id'];
+	$mode = $this->request->query('mode');
 		
-		$fonds = $this->Fonds->find('all', [
+	$fonds = $this->Fonds->find('all', [
             'contain' => [
 				'EntiteDocs' => function ($q) {return $q->select(['entnom' => 'EntiteDocs.nom']);},
 				'TypeFonds' => function ($q) {return $q->select(['fondnom' => 'TypeFonds.type']);},
@@ -2636,13 +2700,13 @@ class FondsController extends AppController
 				]
 			]);
 		//dump($monTypeUser);
-		if ($monTypeUser == PROFIL_CA) {
+	if ($monTypeUser == PROFIL_CA) {
 			$fonds->where([
 				'entite_doc_id' => $monEntiteDoc,
 				'ind_suppr != ' => 1
 				]);
-		}
-		else {
+	}
+	else {
             if ($mode != 'supprime') {
                 $fonds->where([
                     'ind_suppr != ' => 1
@@ -2653,88 +2717,88 @@ class FondsController extends AppController
                     'ind_suppr = ' => 1
                     ]);	                
             }
-		}
+	}
 		
-		//dump($fonds);
+	//dump($fonds);
+	
+	$_serialize = 'fonds';
 		
-		$_serialize = 'fonds';
-		
-		$_header = ['Nom', 
-					'Année de début',
-					'Année de fin',
-					'Dates extrêmes à renseigner',		
-					'Cote',
-					'Producteur', 
-					'Historique', 
-					'Couplage à une collection d\'imprimé', 
-					'URL d\'inventaire de la collection',
-					'Précision sur la collection', 
-					'Volumétrie mètre-linéaire', 
-					'Volumétrie mètre-linéaire inconnue',
-					'Volumétrie gigaoctets', 
-					'Volumétrie gigaoctets inconnue',
-					'Observations', 
-					'Entité documentaire', 
-					'Type de fonds',
-					'Type de traitement', 
-					'Type de numérisation', 
-					'Type d\'instrument de recherche',
-					'URL de l\'instrument de recherche',
-					'Type de statut juridique', 
-					'Type d\'entrée', 
-					'Type d\'accroissement', 
-					'Type de document afférent', 
-					'Aire culturelle', 
-					'Lieu de conservation',
-					'Disciplines', 
-					'Type de conditionnement', 
-					'Type de documents',
-					'Type de support',
-					'Type de prise en charges',
-					'Traitement envisagé / réalisé' ,
-					'Site d\'intervention', 
-					'Dates envisagées / effectives (début ; MM/JJ/AA)',
-					'Dates envisagées / effectives (fin ; MM/JJ/AA)',
-					'Responsable d\'opérations'
-					];
+	$_header = ['Nom', 
+		'Année de début',
+		'Année de fin',
+		'Dates extrêmes à renseigner',		
+		'Cote',
+		'Producteur', 
+		'Historique', 
+		'Couplage à une collection d\'imprimé', 
+		'URL d\'inventaire de la collection',
+		'Précision sur la collection', 
+		'Volumétrie mètre-linéaire', 
+		'Volumétrie mètre-linéaire inconnue',
+		'Volumétrie gigaoctets', 
+		'Volumétrie gigaoctets inconnue',
+		'Observations', 
+		'Entité documentaire', 
+		'Type de fonds',
+		'Type de traitement', 
+		'Type de numérisation', 
+		'Type d\'instrument de recherche',
+		'URL de l\'instrument de recherche',
+		'Type de statut juridique', 
+		'Type d\'entrée', 
+		'Type d\'accroissement', 
+		'Type de document afférent', 
+		'Aire culturelle', 
+		'Lieu de conservation',
+		'Disciplines', 
+		'Type de conditionnement', 
+		'Type de documents',
+		'Type de support',
+		'Type de prise en charges',
+		'Traitement envisagé / réalisé' ,
+		'Site d\'intervention', 
+		'Dates envisagées / effectives (début ; MM/JJ/AA)',
+		'Dates envisagées / effectives (fin ; MM/JJ/AA)',
+		'Responsable d\'opérations'
+		];
 					
 		$_extract = ['nom', 
-					'annee_deb',
-					'annee_fin',
-					['ind_annee', 'boolean', 'A renseigner'],
-					'cote', 
-					'producteur', 
-					'historique', 
-					['ind_bib', 'boolean', 'Oui'], 
-					'url_collection',
-					'precision_bib', 
-					'nb_ml', 
-					['ind_nb_ml_inconnu', 'boolean', 'Inconnue'],
-					'nb_go', 
-					['ind_nb_go_inconnu', 'boolean', 'Inconnue'],
-					'observations', 
-					'entnom', 
-					'fondnom', 
-					'traitementnom', 
-					'numerisationnom', 
-					'instrrechnom', 
-					'url_instr_rech',
-					'statjuridnom', 
-					'entreenom', 
-					'accroissementnom', 
-					['type_doc_afferents', 'array', 'docafferentnom'], 
-					['aire_culturelles', 'array', 'aireculturellenom'],  
-					['lieu_conservations', 'array', 'lieuconsnom'], 
-					['thematiques', 'array', 'thematiquenom'],
-					['type_conditionnements', 'array', 'conditionnementnom'],
-					['type_docs', 'array', 'typedocnom'], 
-					['type_supports', 'array', 'typesupportnom'],
-					'priseenchargenom',
-					'realisationtraitementsnom',
-					'dt_deb_prestation',
-					'dt_fin_prestation',
-					'responsable_operation'
-					];
+		'annee_deb',
+		'annee_fin',
+		['ind_annee', 'boolean', 'A renseigner'],
+		'cote', 
+		'producteur', 
+		'historique', 
+		['ind_bib', 'boolean', 'Oui'], 
+		'url_collection',
+		'precision_bib', 
+		'nb_ml', 
+		['ind_nb_ml_inconnu', 'boolean', 'Inconnue'],
+		'nb_go', 
+		['ind_nb_go_inconnu', 'boolean', 'Inconnue'],
+		'observations', 
+		'entnom', 
+		'fondnom', 
+		'traitementnom', 
+		'numerisationnom', 
+		'instrrechnom', 
+		'url_instr_rech',
+		'statjuridnom', 
+		'entreenom', 
+		'accroissementnom', 
+		['type_doc_afferents', 'array', 'docafferentnom'], 
+		['aire_culturelles', 'array', 'aireculturellenom'],  
+		['lieu_conservations', 'array', 'lieuconsnom'], 
+		['thematiques', 'array', 'thematiquenom'],
+		['type_conditionnements', 'array', 'conditionnementnom'],
+		['type_docs', 'array', 'typedocnom'], 
+		['type_supports', 'array', 'typesupportnom'],
+		'priseenchargenom',
+		'realisationtraitementsnom',
+		'dt_deb_prestation',
+		'dt_fin_prestation',
+		'responsable_operation'
+		];
 
 		$_delimiter = chr(9); //tabulation en séparateur
 		$_enclosure = '';

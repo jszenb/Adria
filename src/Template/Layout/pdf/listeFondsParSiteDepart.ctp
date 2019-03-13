@@ -155,7 +155,7 @@ foreach($fonds as $row) {
                         // On doit écrire les totaux calculés avant de changer d'entité
                         $pdf->Cell($w[0], 6, 'Nb. de fonds : ' . $ligne, 'T', 0, '', $fill);
                         $pdf->Cell($w[1], 6, 'Total : ', 'T', 0, 'R', $fill);
-                        $pdf->Cell($w[2], 6, is_numeric($totalMl) ? number_format($totalMl, 1, ',', ' ') : 'inconnu' , 'T', 0, 'R');
+                        $pdf->Cell($w[2], 6, is_numeric($totalMl) ? number_format($totalMl, 2, ',', ' ') : 'inconnu' , 'T', 0, 'R');
                         $pdf->Ln();
                         // On met une bordure sur la dernière ligne du tableau avant le saut de page
                         $pdf->Cell($totalw, 0, '', '');
@@ -221,7 +221,7 @@ foreach($fonds as $row) {
 	$ligne++;
 	$pdf->Cell($w[0], 6, $row->cote, 'LR', 0, 'L', $fill);
 	$pdf->Cell($w[1], 6, $row->nom, 'LR', 0, 'L', $fill, false, 1);
-	$pdf->Cell($w[2], 6, is_numeric($row->nb_ml) ? number_format($row->nb_ml, 1, ',', ' ') : 'inconnu' , 'LR', 0, 'R', $fill);
+	$pdf->Cell($w[2], 6, is_numeric($row->nb_ml) ? number_format($row->nb_ml, 2, ',', ' ') : 'inconnu' , 'LR', 0, 'R', $fill);
 	
 	if ( is_numeric($row->nb_ml) ) {
 		$totalMl += $row->nb_ml ;
@@ -244,7 +244,7 @@ foreach($fonds as $row) {
 // Ecriture de la volumétrie pour le dernier site de départ (puisqu'on ne boucle pas)
 $pdf->Cell($w[0], 6, 'Nb. de fonds : ' . $ligne, 'T', 0, '', $fill);
 $pdf->Cell($w[1], 6, 'Total : ', 'T', 0, 'R', $fill);            
-$pdf->Cell($w[2], 6, is_numeric($totalMl) ? number_format($totalMl, 1, ',', ' ') : 'inconnu' , 'T', 0, 'R');
+$pdf->Cell($w[2], 6, is_numeric($totalMl) ? number_format($totalMl, 2, ',', ' ') : 'inconnu' , 'T', 0, 'R');
 $pdf->Cell($w[3], 6, '', 'T', 0, '', $fill);
 $pdf->Ln();
 

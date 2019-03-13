@@ -302,6 +302,7 @@
 	<script type="text/javascript">
 		$priseEnChargeNon = '<?php echo $priseEnChargeNon->id ?>' ;
 		$realisationTraitementAucun = '<?php echo $realisationTraitementAucun->id ?>' ;
+ 		$("input[type=radio][value=" + 1 + "]").prop("disabled",true);
 	</script>	
 	<?php echo $this->Html->script('Fonds-add-edit.js'); ?>
 	
